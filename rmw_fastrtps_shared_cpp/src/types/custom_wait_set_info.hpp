@@ -1,4 +1,4 @@
-// Copyright 2022 Open Source Robotics Foundation, Inc.
+// Copyright 2016-2018 Proyectos y Sistemas de Mantenimiento SL (eProsima).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "rmw/error_handling.h"
-#include "rmw/rmw.h"
-#include "rmw/types.h"
+#ifndef TYPES__CUSTOM_WAIT_SET_INFO_HPP_
+#define TYPES__CUSTOM_WAIT_SET_INFO_HPP_
 
-#include "rmw_fastrtps_shared_cpp/rmw_common.hpp"
+#include <condition_variable>
+#include <mutex>
 
-#include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
-
-extern "C"
+typedef struct CustomWaitsetInfo
 {
-rmw_ret_t
-rmw_get_gid_for_client(const rmw_client_t * client, rmw_gid_t * gid)
-{
-  return rmw_fastrtps_shared_cpp::__rmw_get_gid_for_client(
-    eprosima_fastrtps_identifier, client, gid);
-}
-}  // extern "C"
+  std::condition_variable condition;
+  std::mutex condition_mutex;
+} CustomWaitsetInfo;
+
+#endif  // TYPES__CUSTOM_WAIT_SET_INFO_HPP_

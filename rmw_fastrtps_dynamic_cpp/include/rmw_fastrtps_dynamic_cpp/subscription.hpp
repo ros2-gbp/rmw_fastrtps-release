@@ -25,12 +25,13 @@ namespace rmw_fastrtps_dynamic_cpp
 
 rmw_subscription_t *
 create_subscription(
-  CustomParticipantInfo * participant_info,
+  const CustomParticipantInfo * participant_info,
   const rosidl_message_type_support_t * type_supports,
   const char * topic_name,
   const rmw_qos_profile_t * qos_policies,
   const rmw_subscription_options_t * subscription_options,
-  bool keyed);
+  bool keyed,
+  bool create_subscription_listener);
 
 }  // namespace rmw_fastrtps_dynamic_cpp
 

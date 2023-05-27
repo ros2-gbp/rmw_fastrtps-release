@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "rcutils/macros.h"
-
 #include "rmw/allocators.h"
 #include "rmw/error_handling.h"
 #include "rmw/rmw.h"
@@ -21,14 +19,13 @@
 
 #include "rmw_fastrtps_shared_cpp/rmw_common.hpp"
 
-#include "fastdds/dds/core/condition/WaitSet.hpp"
+#include "types/custom_wait_set_info.hpp"
 
 namespace rmw_fastrtps_shared_cpp
 {
 rmw_wait_set_t *
 __rmw_create_wait_set(const char * identifier, rmw_context_t * context, size_t max_conditions)
 {
-  RCUTILS_CAN_RETURN_WITH_ERROR_OF(nullptr);
   RCUTILS_CHECK_ARGUMENT_FOR_NULL(context, NULL);
   RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
     init context,
@@ -40,26 +37,26 @@ __rmw_create_wait_set(const char * identifier, rmw_context_t * context, size_t m
   (void)max_conditions;
 
   // From here onward, error results in unrolling in the goto fail block.
-  eprosima::fastdds::dds::WaitSet * fastdds_wait_set = nullptr;
+  CustomWaitsetInfo * wait_set_info = nullptr;
   rmw_wait_set_t * wait_set = rmw_wait_set_allocate();
   if (!wait_set) {
     RMW_SET_ERROR_MSG("failed to allocate wait set");
     goto fail;
   }
   wait_set->implementation_identifier = identifier;
-  wait_set->data = rmw_allocate(sizeof(eprosima::fastdds::dds::WaitSet));
+  wait_set->data = rmw_allocate(sizeof(CustomWaitsetInfo));
   if (!wait_set->data) {
     RMW_SET_ERROR_MSG("failed to allocate wait set info");
     goto fail;
   }
   // This should default-construct the fields of CustomWaitsetInfo
   RMW_TRY_PLACEMENT_NEW(
-    fastdds_wait_set,
+    wait_set_info,
     wait_set->data,
     goto fail,
     // cppcheck-suppress syntaxError
-    eprosima::fastdds::dds::WaitSet, );
-  (void) fastdds_wait_set;
+    CustomWaitsetInfo, );
+  (void) wait_set_info;
 
   return wait_set;
 
@@ -80,7 +77,7 @@ __rmw_destroy_wait_set(const char * identifier, rmw_wait_set_t * wait_set)
   RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
     wait set handle,
     wait_set->implementation_identifier, identifier,
-    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
+    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION)
 
   auto result = RMW_RET_OK;
   // If wait_set_info is ever nullptr, it can only mean one of three things:
@@ -89,19 +86,16 @@ __rmw_destroy_wait_set(const char * identifier, rmw_wait_set_t * wait_set)
   // error.
   // - Heap is corrupt.
   // In all three cases, it's better if this crashes soon enough.
-  auto fastdds_wait_set = static_cast<eprosima::fastdds::dds::WaitSet *>(wait_set->data);
+  auto wait_set_info = static_cast<CustomWaitsetInfo *>(wait_set->data);
 
   if (wait_set->data) {
-    if (fastdds_wait_set) {
+    if (wait_set_info) {
       RMW_TRY_DESTRUCTOR(
-        fastdds_wait_set->eprosima::fastdds::dds::WaitSet::~WaitSet(), fastdds_wait_set,
-        result = RMW_RET_ERROR)
+        wait_set_info->~CustomWaitsetInfo(), wait_set_info, result = RMW_RET_ERROR)
     }
     rmw_free(wait_set->data);
   }
   rmw_wait_set_free(wait_set);
-
-  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RMW_RET_ERROR);  // on completion
   return result;
 }
 }  // namespace rmw_fastrtps_shared_cpp
