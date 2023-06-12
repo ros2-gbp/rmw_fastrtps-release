@@ -16,9 +16,10 @@ cmake_minimum_required(VERSION 3.5)
 
 project(rmw_fastrtps_cpp)
 
-# Default to C++14
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -35,13 +36,15 @@ find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rmw_dds_common REQUIRED)
 find_package(rmw_fastrtps_shared_cpp REQUIRED)
+find_package(tracetools REQUIRED)
 
 find_package(fastrtps_cmake_module REQUIRED)
 find_package(fastcdr REQUIRED CONFIG)
-find_package(fastrtps REQUIRED CONFIG)
-find_package(FastRTPS REQUIRED MODULE)
+find_package(fastrtps 2.10 REQUIRED CONFIG)
+find_package(FastRTPS 2.10 REQUIRED MODULE)
 
 find_package(rmw REQUIRED)
+find_package(rosidl_dynamic_typesupport REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
@@ -61,7 +64,10 @@ add_library(rmw_fastrtps_cpp
   src/rmw_client.cpp
   src/rmw_compare_gids_equal.cpp
   src/rmw_count.cpp
+  src/rmw_dynamic_message_type_support.cpp
   src/rmw_event.cpp
+  src/rmw_features.cpp
+  src/rmw_get_gid_for_client.cpp
   src/rmw_get_gid_for_publisher.cpp
   src/rmw_get_implementation_identifier.cpp
   src/rmw_get_serialization_format.cpp
@@ -73,6 +79,7 @@ add_library(rmw_fastrtps_cpp
   src/rmw_node_names.cpp
   src/rmw_publish.cpp
   src/rmw_publisher.cpp
+  src/rmw_qos.cpp
   src/rmw_request.cpp
   src/rmw_response.cpp
   src/rmw_serialize.cpp
@@ -88,6 +95,7 @@ add_library(rmw_fastrtps_cpp
   src/serialization_format.cpp
   src/subscription.cpp
   src/type_support_common.cpp
+  src/rmw_get_endpoint_network_flow.cpp
 )
 target_link_libraries(rmw_fastrtps_cpp
   fastcdr fastrtps)
@@ -102,6 +110,7 @@ ament_target_dependencies(rmw_fastrtps_cpp
   "rmw_fastrtps_shared_cpp"
   "rmw"
   "rosidl_runtime_c"
+  "tracetools"
 )
 
 target_link_libraries(rmw_fastrtps_cpp
@@ -115,10 +124,11 @@ configure_rmw_library(rmw_fastrtps_cpp)
 target_compile_definitions(${PROJECT_NAME}
 PRIVATE "RMW_FASTRTPS_CPP_BUILDING_LIBRARY")
 
-# specific order: dependents before dependencies
-ament_export_include_directories(include)
+# Export old-style CMake variables
+ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(rmw_fastrtps_cpp)
 
+# specific order: dependents before dependencies
 ament_export_dependencies(rcutils)
 ament_export_dependencies(rmw)
 ament_export_dependencies(rmw_dds_common)
@@ -126,10 +136,11 @@ ament_export_dependencies(rmw_fastrtps_shared_cpp)
 ament_export_dependencies(rosidl_runtime_c)
 ament_export_dependencies(rosidl_typesupport_fastrtps_c)
 ament_export_dependencies(rosidl_typesupport_fastrtps_cpp)
+ament_export_dependencies(tracetools)
 
 register_rmw_implementation(
-  "c:rosidl_typesupport_c:rosidl_typesupport_fastrtps_c"
-  "cpp:rosidl_typesupport_cpp:rosidl_typesupport_fastrtps_cpp")
+  "c:rosidl_typesupport_c:rosidl_typesupport_fastrtps_c:rosidl_typesupport_introspection_c"
+  "cpp:rosidl_typesupport_cpp:rosidl_typesupport_fastrtps_cpp:rosidl_typesupport_introspection_cpp")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -157,7 +168,7 @@ ament_package(
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/${PROJECT_NAME}
 )
 
 install(

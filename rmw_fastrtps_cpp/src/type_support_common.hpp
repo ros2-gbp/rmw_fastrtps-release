@@ -18,9 +18,6 @@
 #include <sstream>
 #include <string>
 
-#include "fastrtps/Domain.h"
-#include "fastrtps/participant/Participant.h"
-
 #include "rmw/error_handling.h"
 
 #include "rmw_fastrtps_shared_cpp/TypeSupport.hpp"
@@ -44,16 +41,10 @@ using ResponseTypeSupport_cpp = rmw_fastrtps_cpp::ResponseTypeSupport;
 
 inline std::string
 _create_type_name(
-  const message_type_support_callbacks_t * members)
+  std::string message_namespace,
+  std::string message_name)
 {
-  if (!members) {
-    RMW_SET_ERROR_MSG("members handle is null");
-    return "";
-  }
-
   std::ostringstream ss;
-  std::string message_namespace(members->message_namespace_);
-  std::string message_name(members->message_name_);
   if (!message_namespace.empty()) {
     ss << message_namespace << "::";
   }
@@ -61,12 +52,17 @@ _create_type_name(
   return ss.str();
 }
 
-inline void
-_register_type(
-  eprosima::fastrtps::Participant * participant,
-  rmw_fastrtps_shared_cpp::TypeSupport * typed_typesupport)
+inline std::string
+_create_type_name(
+  const message_type_support_callbacks_t * members)
 {
-  eprosima::fastrtps::Domain::registerType(participant, typed_typesupport);
+  if (!members) {
+    RMW_SET_ERROR_MSG("members handle is null");
+    return "";
+  }
+  std::string message_namespace(members->message_namespace_);
+  std::string message_name(members->message_name_);
+  return _create_type_name(message_namespace, message_name);
 }
 
 #endif  // TYPE_SUPPORT_COMMON_HPP_
