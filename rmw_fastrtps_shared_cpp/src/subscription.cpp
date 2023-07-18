@@ -66,13 +66,10 @@ destroy_subscription(
     }
 
     // Delete DataReader listener
-    delete info->data_reader_listener_;
+    delete info->listener_;
 
     // Delete topic and unregister type
-    remove_topic_and_type(
-      participant_info, info->subscription_event_, info->topic_, info->type_support_);
-
-    delete info->subscription_event_;
+    remove_topic_and_type(participant_info, info->topic_, info->type_support_);
 
     // Delete CustomSubscriberInfo structure
     delete info;
