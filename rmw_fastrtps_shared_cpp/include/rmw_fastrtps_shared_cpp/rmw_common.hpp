@@ -68,6 +68,13 @@ __rmw_get_gid_for_publisher(
   rmw_gid_t * gid);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_get_gid_for_client(
+  const char * identifier,
+  const rmw_client_t * client,
+  rmw_gid_t * gid);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
 rmw_guard_condition_t *
 __rmw_create_guard_condition(const char * identifier);
 
@@ -425,6 +432,25 @@ __rmw_take_serialized_message_with_info(
   const char * identifier,
   const rmw_subscription_t * subscription,
   rmw_serialized_message_t * serialized_message,
+  bool * taken,
+  rmw_message_info_t * message_info,
+  rmw_subscription_allocation_t * allocation);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_take_dynamic_message(
+  const char * identifier,
+  const rmw_subscription_t * subscription,
+  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
+  bool * taken,
+  rmw_subscription_allocation_t * allocation);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_take_dynamic_message_with_info(
+  const char * identifier,
+  const rmw_subscription_t * subscription,
+  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
   bool * taken,
   rmw_message_info_t * message_info,
   rmw_subscription_allocation_t * allocation);

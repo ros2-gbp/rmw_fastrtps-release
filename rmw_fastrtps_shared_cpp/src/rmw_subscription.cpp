@@ -92,7 +92,7 @@ __rmw_subscription_count_matched_publishers(
 {
   auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
 
-  *publisher_count = info->listener_->publisherCount();
+  *publisher_count = info->subscription_event_->publisher_count();
 
   return RMW_RET_OK;
 }
@@ -183,7 +183,7 @@ __rmw_subscription_set_content_filter(
       subscription_options,
       subscriber,
       des_topic,
-      info->listener_,
+      info->data_reader_listener_,
       &info->data_reader_))
   {
     RMW_SET_ERROR_MSG("create_datareader() could not create data reader");
@@ -221,7 +221,7 @@ __rmw_subscription_set_content_filter(
       static_cast<void *>(&msg),
       nullptr);
     if (RMW_RET_OK != rmw_ret) {
-      static_cast<void>(common_context->graph_cache.dissociate_writer(
+      static_cast<void>(common_context->graph_cache.dissociate_reader(
         info->subscription_gid_, common_context->gid, node->name, node->namespace_));
       return RMW_RET_ERROR;
     }
@@ -273,7 +273,7 @@ __rmw_subscription_set_on_new_message_callback(
   const void * user_data)
 {
   auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(rmw_subscription->data);
-  custom_subscriber_info->listener_->set_on_new_message_callback(
+  custom_subscriber_info->subscription_event_->set_on_new_message_callback(
     user_data,
     callback);
   return RMW_RET_OK;
