@@ -25,8 +25,6 @@
 
 #include "fastrtps/rtps/common/SerializedPayload.h"
 #include "fastrtps/utils/md5.h"
-#include "fastrtps/types/DynamicData.h"
-#include "fastrtps/types/DynamicPubSubType.h"
 #include "fastrtps/types/TypesBase.h"
 #include "fastrtps/types/TypeObjectFactory.h"
 #include "fastrtps/types/TypeNamesGenerator.h"
@@ -71,49 +69,29 @@ bool TypeSupport::serialize(
   assert(payload);
 
   auto ser_data = static_cast<SerializedData *>(data);
-
-  switch (ser_data->type) {
-    case FASTRTPS_SERIALIZED_DATA_TYPE_ROS_MESSAGE:
-      {
-        eprosima::fastcdr::FastBuffer fastbuffer(  // Object that manages the raw buffer
-          reinterpret_cast<char *>(payload->data), payload->max_size);
-        eprosima::fastcdr::Cdr ser(  // Object that serializes the data
-          fastbuffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
-        if (this->serializeROSmessage(ser_data->data, ser, ser_data->impl)) {
-          payload->encapsulation = ser.endianness() ==
-            eprosima::fastcdr::Cdr::BIG_ENDIANNESS ? CDR_BE : CDR_LE;
-          payload->length = (uint32_t)ser.getSerializedDataLength();
-          return true;
-        }
-        break;
-      }
-
-    case FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER:
-      {
-        auto ser = static_cast<eprosima::fastcdr::Cdr *>(ser_data->data);
-        if (payload->max_size >= ser->getSerializedDataLength()) {
-          payload->length = static_cast<uint32_t>(ser->getSerializedDataLength());
-          payload->encapsulation = ser->endianness() ==
-            eprosima::fastcdr::Cdr::BIG_ENDIANNESS ? CDR_BE : CDR_LE;
-          memcpy(payload->data, ser->getBufferPointer(), ser->getSerializedDataLength());
-          return true;
-        }
-        break;
-      }
-
-    case FASTRTPS_SERIALIZED_DATA_TYPE_DYNAMIC_MESSAGE:
-      {
-        auto m_type = std::make_shared<eprosima::fastrtps::types::DynamicPubSubType>();
-
-        // Serializes payload into dynamic data stored in data->data
-        return m_type->serialize(
-          static_cast<eprosima::fastrtps::types::DynamicData *>(ser_data->data), payload
-        );
-      }
-
-    default:
-      return false;
+  if (ser_data->is_cdr_buffer) {
+    auto ser = static_cast<eprosima::fastcdr::Cdr *>(ser_data->data);
+    if (payload->max_size >= ser->getSerializedDataLength()) {
+      payload->length = static_cast<uint32_t>(ser->getSerializedDataLength());
+      payload->encapsulation = ser->endianness() ==
+        eprosima::fastcdr::Cdr::BIG_ENDIANNESS ? CDR_BE : CDR_LE;
+      memcpy(payload->data, ser->getBufferPointer(), ser->getSerializedDataLength());
+      return true;
+    }
+  } else {
+    eprosima::fastcdr::FastBuffer fastbuffer(
+      reinterpret_cast<char *>(payload->data),
+      payload->max_size);  // Object that manages the raw buffer.
+    eprosima::fastcdr::Cdr ser(fastbuffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN,
+      eprosima::fastcdr::Cdr::DDS_CDR);  // Object that serializes the data.
+    if (this->serializeROSmessage(ser_data->data, ser, ser_data->impl)) {
+      payload->encapsulation = ser.endianness() ==
+        eprosima::fastcdr::Cdr::BIG_ENDIANNESS ? CDR_BE : CDR_LE;
+      payload->length = (uint32_t)ser.getSerializedDataLength();
+      return true;
+    }
   }
+
   return false;
 }
 
@@ -125,41 +103,23 @@ bool TypeSupport::deserialize(
   assert(payload);
 
   auto ser_data = static_cast<SerializedData *>(data);
-
-  switch (ser_data->type) {
-    case FASTRTPS_SERIALIZED_DATA_TYPE_ROS_MESSAGE:
-      {
-        eprosima::fastcdr::FastBuffer fastbuffer(
-          reinterpret_cast<char *>(payload->data), payload->length);
-        eprosima::fastcdr::Cdr deser(
-          fastbuffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
-        return deserializeROSmessage(deser, ser_data->data, ser_data->impl);
-      }
-
-    case FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER:
-      {
-        auto buffer = static_cast<eprosima::fastcdr::FastBuffer *>(ser_data->data);
-        if (!buffer->reserve(payload->length)) {
-          return false;
-        }
-        memcpy(buffer->getBuffer(), payload->data, payload->length);
-        return true;
-      }
-
-    case FASTRTPS_SERIALIZED_DATA_TYPE_DYNAMIC_MESSAGE:
-      {
-        auto m_type = std::make_shared<eprosima::fastrtps::types::DynamicPubSubType>();
-
-        // Deserializes payload into dynamic data stored in data->data (copies!)
-        return m_type->deserialize(
-          payload, static_cast<eprosima::fastrtps::types::DynamicData *>(ser_data->data)
-        );
-      }
-
-    default:
+  if (ser_data->is_cdr_buffer) {
+    auto buffer = static_cast<eprosima::fastcdr::FastBuffer *>(ser_data->data);
+    if (!buffer->reserve(payload->length)) {
       return false;
+    }
+    memcpy(buffer->getBuffer(), payload->data, payload->length);
+    return true;
   }
-  return false;
+
+  eprosima::fastcdr::FastBuffer fastbuffer(
+    reinterpret_cast<char *>(payload->data),
+    payload->length);
+  eprosima::fastcdr::Cdr deser(
+    fastbuffer,
+    eprosima::fastcdr::Cdr::DEFAULT_ENDIAN,
+    eprosima::fastcdr::Cdr::DDS_CDR);
+  return deserializeROSmessage(deser, ser_data->data, ser_data->impl);
 }
 
 std::function<uint32_t()> TypeSupport::getSerializedSizeProvider(void * data)
@@ -169,12 +129,14 @@ std::function<uint32_t()> TypeSupport::getSerializedSizeProvider(void * data)
   auto ser_data = static_cast<SerializedData *>(data);
   auto ser_size = [this, ser_data]() -> uint32_t
     {
-      if (ser_data->type == FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER) {
+      if (ser_data->is_cdr_buffer) {
         auto ser = static_cast<eprosima::fastcdr::Cdr *>(ser_data->data);
         return static_cast<uint32_t>(ser->getSerializedDataLength());
       }
       return static_cast<uint32_t>(
-        this->getEstimatedSerializedSize(ser_data->data, ser_data->impl));
+        this->getEstimatedSerializedSize(
+          ser_data->data,
+          ser_data->impl));
     };
   return ser_size;
 }
@@ -191,7 +153,8 @@ using TypeObject = eprosima::fastrtps::types::TypeObject;
 using TypeObjectFactory = eprosima::fastrtps::types::TypeObjectFactory;
 
 const rosidl_message_type_support_t *
-get_type_support_introspection(const rosidl_message_type_support_t * type_supports)
+get_type_support_introspection(
+  const rosidl_message_type_support_t * type_supports)
 {
   const rosidl_message_type_support_t * type_support =
     get_message_typesupport_handle(
@@ -222,7 +185,8 @@ get_type_support_introspection(const rosidl_message_type_support_t * type_suppor
 
 template<typename MembersType>
 inline std::string
-_create_type_name(const MembersType * members)
+_create_type_name(
+  const MembersType * members)
 {
   if (!members) {
     return std::string();

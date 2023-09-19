@@ -32,8 +32,6 @@
 #include "rmw/rmw.h"
 #include "rmw/validate_full_topic_name.h"
 
-#include "rosidl_runtime_c/type_hash.h"
-
 #include "rcpputils/scope_exit.hpp"
 
 #include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
@@ -62,7 +60,7 @@ namespace rmw_fastrtps_dynamic_cpp
 
 rmw_subscription_t *
 create_subscription(
-  CustomParticipantInfo * participant_info,
+  const CustomParticipantInfo * participant_info,
   const rosidl_message_type_support_t * type_supports,
   const char * topic_name,
   const rmw_qos_profile_t * qos_policies,
@@ -165,12 +163,12 @@ create_subscription(
   }
 
   auto cleanup_info = rcpputils::make_scope_exit(
-    [info, participant_info]()
+    [info, dds_participant]()
     {
-      rmw_fastrtps_shared_cpp::remove_topic_and_type(
-        participant_info, info->subscription_event_, info->topic_, info->type_support_);
-      delete info->subscription_event_;
-      delete info->data_reader_listener_;
+      delete info->listener_;
+      if (info->type_support_) {
+        dds_participant->unregister_type(info->type_support_.get_type_name());
+      }
       delete info;
     });
 
@@ -216,16 +214,10 @@ create_subscription(
 
   /////
   // Create Listener
-  info->subscription_event_ = new (std::nothrow) RMWSubscriptionEvent(info);
-  if (!info->subscription_event_) {
-    RMW_SET_ERROR_MSG("create_subscription() could not create subscription event");
-    return nullptr;
-  }
+  info->listener_ = new (std::nothrow) SubListener(info);
 
-  info->data_reader_listener_ =
-    new (std::nothrow) CustomDataReaderListener(info->subscription_event_);
-  if (!info->data_reader_listener_) {
-    RMW_SET_ERROR_MSG("create_subscription() could not create subscription data reader listener");
+  if (!info->listener_) {
+    RMW_SET_ERROR_MSG("create_subscription() could not create subscription listener");
     return nullptr;
   }
 
@@ -237,14 +229,16 @@ create_subscription(
     return nullptr;
   }
 
-  info->topic_ = participant_info->find_or_create_topic(
-    topic_name_mangled, type_name, topic_qos, info->subscription_event_);
-  if (!info->topic_) {
+  rmw_fastrtps_shared_cpp::TopicHolder topic;
+  if (!rmw_fastrtps_shared_cpp::cast_or_create_topic(
+      dds_participant, des_topic,
+      topic_name_mangled, type_name, topic_qos, false, &topic))
+  {
     RMW_SET_ERROR_MSG("create_subscription() failed to create topic");
     return nullptr;
   }
 
-  des_topic = info->topic_;
+  des_topic = topic.desc;
 
   /////
   // Create DataReader
@@ -266,11 +260,14 @@ create_subscription(
     reader_qos.data_sharing().off();
   }
 
-  if (!get_datareader_qos(
-      *qos_policies, *type_supports->get_type_hash_func(type_supports),
-      reader_qos))
-  {
+  if (!get_datareader_qos(*qos_policies, reader_qos)) {
     RMW_SET_ERROR_MSG("create_subscription() failed setting data reader QoS");
+    return nullptr;
+  }
+
+  info->listener_ = new (std::nothrow) SubListener(info);
+  if (!info->listener_) {
+    RMW_SET_ERROR_MSG("create_subscriber() could not create subscriber listener");
     return nullptr;
   }
 
@@ -299,7 +296,7 @@ create_subscription(
   info->data_reader_ = subscriber->create_datareader(
     des_topic,
     reader_qos,
-    info->data_reader_listener_,
+    info->listener_,
     eprosima::fastdds::dds::StatusMask::subscription_matched());
   if (!info->data_reader_ &&
     (RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_OPTIONALLY_REQUIRED ==
@@ -308,7 +305,7 @@ create_subscription(
     info->data_reader_ = subscriber->create_datareader(
       des_topic,
       original_qos,
-      info->data_reader_listener_,
+      info->listener_,
       eprosima::fastdds::dds::StatusMask::subscription_matched());
   }
 
@@ -361,6 +358,7 @@ create_subscription(
   // TODO(iuhilnehc-ynos): update after rmw_fastrtps_cpp is confirmed
   rmw_subscription->is_cft_enabled = false;
 
+  topic.should_be_deleted = false;
   cleanup_rmw_subscription.cancel();
   cleanup_datareader.cancel();
   return_type_support.cancel();
