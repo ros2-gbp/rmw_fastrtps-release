@@ -16,9 +16,10 @@ cmake_minimum_required(VERSION 3.5)
 
 project(rmw_fastrtps_shared_cpp)
 
-# Default to C++14
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -34,22 +35,26 @@ if(SECURITY)
 endif()
 
 find_package(ament_cmake_ros REQUIRED)
+find_package(rosidl_dynamic_typesupport REQUIRED)
+find_package(rosidl_dynamic_typesupport_fastrtps REQUIRED)
 
 find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rmw_dds_common REQUIRED)
+find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_introspection_c REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 find_package(tracetools REQUIRED)
 
 find_package(fastrtps_cmake_module REQUIRED)
 find_package(fastcdr REQUIRED CONFIG)
-find_package(fastrtps 2.6.2 REQUIRED CONFIG)
-find_package(FastRTPS 2.6.2 REQUIRED MODULE)
+find_package(fastrtps 2.10 REQUIRED CONFIG)
+find_package(FastRTPS 2.10 REQUIRED MODULE)
 
 find_package(rmw REQUIRED)
 
 add_library(rmw_fastrtps_shared_cpp
+  src/custom_participant_info.cpp
   src/custom_publisher_info.cpp
   src/custom_subscriber_info.cpp
   src/create_rmw_gid.cpp
@@ -66,6 +71,7 @@ add_library(rmw_fastrtps_shared_cpp
   src/rmw_event.cpp
   src/rmw_features.cpp
   src/rmw_get_endpoint_network_flow.cpp
+  src/rmw_get_gid_for_client.cpp
   src/rmw_get_gid_for_publisher.cpp
   src/rmw_get_topic_endpoint_info.cpp
   src/rmw_guard_condition.cpp
@@ -100,6 +106,8 @@ target_include_directories(rmw_fastrtps_shared_cpp
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(rmw_fastrtps_shared_cpp
   fastcdr fastrtps
+  rosidl_dynamic_typesupport::rosidl_dynamic_typesupport
+  rosidl_dynamic_typesupport_fastrtps::rosidl_dynamic_typesupport_fastrtps
 )
 
 # specific order: dependents before dependencies
@@ -133,6 +141,9 @@ ament_export_dependencies(rmw_dds_common)
 ament_export_dependencies(rosidl_typesupport_introspection_c)
 ament_export_dependencies(rosidl_typesupport_introspection_cpp)
 ament_export_dependencies(tracetools)
+
+ament_export_dependencies(rosidl_dynamic_typesupport_fastrtps)
+ament_export_dependencies(rosidl_dynamic_typesupport)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

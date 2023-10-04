@@ -39,9 +39,6 @@ destroy_publisher(
     // Get RMW Publisher
     auto info = static_cast<CustomPublisherInfo *>(publisher->data);
 
-    // Keep pointer to topic, so we can remove it later
-    auto topic = info->data_writer_->get_topic();
-
     // Delete DataWriter
     ReturnCode_t ret = participant_info->publisher_->delete_datawriter(info->data_writer_);
     if (ReturnCode_t::RETCODE_OK != ret) {
@@ -52,10 +49,13 @@ destroy_publisher(
     }
 
     // Delete DataWriter listener
-    delete info->listener_;
+    delete info->data_writer_listener_;
 
     // Delete topic and unregister type
-    remove_topic_and_type(participant_info, topic, info->type_support_);
+    remove_topic_and_type(
+      participant_info, info->publisher_event_, info->topic_, info->type_support_);
+
+    delete info->publisher_event_;
 
     // Delete CustomPublisherInfo structure
     delete info;

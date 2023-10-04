@@ -62,9 +62,32 @@ __rmw_count_subscribers(
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 rmw_ret_t
+__rmw_count_clients(
+  const char * identifier,
+  const rmw_node_t * node,
+  const char * service_name,
+  size_t * count);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_count_services(
+  const char * identifier,
+  const rmw_node_t * node,
+  const char * service_name,
+  size_t * count);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
 __rmw_get_gid_for_publisher(
   const char * identifier,
   const rmw_publisher_t * publisher,
+  rmw_gid_t * gid);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_get_gid_for_client(
+  const char * identifier,
+  const rmw_client_t * client,
   rmw_gid_t * gid);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
@@ -425,6 +448,25 @@ __rmw_take_serialized_message_with_info(
   const char * identifier,
   const rmw_subscription_t * subscription,
   rmw_serialized_message_t * serialized_message,
+  bool * taken,
+  rmw_message_info_t * message_info,
+  rmw_subscription_allocation_t * allocation);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_take_dynamic_message(
+  const char * identifier,
+  const rmw_subscription_t * subscription,
+  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
+  bool * taken,
+  rmw_subscription_allocation_t * allocation);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_take_dynamic_message_with_info(
+  const char * identifier,
+  const rmw_subscription_t * subscription,
+  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
   bool * taken,
   rmw_message_info_t * message_info,
   rmw_subscription_allocation_t * allocation);

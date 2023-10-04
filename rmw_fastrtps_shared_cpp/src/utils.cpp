@@ -54,43 +54,6 @@ rmw_ret_t cast_error_dds_to_rmw(ReturnCode_t code)
 }
 
 bool
-cast_or_create_topic(
-  eprosima::fastdds::dds::DomainParticipant * participant,
-  eprosima::fastdds::dds::TopicDescription * desc,
-  const std::string & topic_name,
-  const std::string & type_name,
-  const eprosima::fastdds::dds::TopicQos & topic_qos,
-  bool is_writer_topic,
-  TopicHolder * topic_holder)
-{
-  topic_holder->should_be_deleted = false;
-  topic_holder->participant = participant;
-  topic_holder->desc = desc;
-  topic_holder->topic = nullptr;
-
-  if (nullptr == desc) {
-    topic_holder->topic = participant->create_topic(
-      topic_name,
-      type_name,
-      topic_qos);
-
-    if (!topic_holder->topic) {
-      return false;
-    }
-
-    topic_holder->desc = topic_holder->topic;
-    topic_holder->should_be_deleted = true;
-  } else {
-    if (is_writer_topic) {
-      topic_holder->topic = dynamic_cast<eprosima::fastdds::dds::Topic *>(desc);
-      assert(nullptr != topic_holder->topic);
-    }
-  }
-
-  return true;
-}
-
-bool
 find_and_check_topic_and_type(
   const CustomParticipantInfo * participant_info,
   const std::string & topic_name,
@@ -106,13 +69,15 @@ find_and_check_topic_and_type(
     }
   }
 
+  // NOTE(methylDragon): This only finds a type that's been previously registered to the participant
   *returned_type = participant_info->participant_->find_type(type_name);
   return true;
 }
 
 void
 remove_topic_and_type(
-  const CustomParticipantInfo * participant_info,
+  CustomParticipantInfo * participant_info,
+  EventListenerInterface * event_listener,
   const eprosima::fastdds::dds::TopicDescription * topic_desc,
   const eprosima::fastdds::dds::TypeSupport & type)
 {
@@ -122,7 +87,7 @@ remove_topic_and_type(
   auto topic = dynamic_cast<const eprosima::fastdds::dds::Topic *>(topic_desc);
 
   if (nullptr != topic) {
-    participant_info->participant_->delete_topic(topic);
+    participant_info->delete_topic(topic, event_listener);
   }
 
   if (type) {
@@ -165,7 +130,7 @@ create_datareader(
   const rmw_subscription_options_t * subscription_options,
   eprosima::fastdds::dds::Subscriber * subscriber,
   eprosima::fastdds::dds::TopicDescription * des_topic,
-  SubListener * listener,
+  CustomDataReaderListener * listener,
   eprosima::fastdds::dds::DataReader ** data_reader
 )
 {
@@ -197,7 +162,7 @@ create_datareader(
     updated_qos,
     listener,
     eprosima::fastdds::dds::StatusMask::subscription_matched());
-  if (!data_reader &&
+  if (!(*data_reader) &&
     (RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_OPTIONALLY_REQUIRED ==
     subscription_options->require_unique_network_flow_endpoints))
   {
@@ -207,6 +172,11 @@ create_datareader(
       listener,
       eprosima::fastdds::dds::StatusMask::subscription_matched());
   }
+
+  if (!(*data_reader)) {
+    return false;
+  }
+
   return true;
 }
 
