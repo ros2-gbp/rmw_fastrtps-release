@@ -40,6 +40,7 @@ However, `rmw_fastrtps` offers the possibility to further configure Fast DDS:
 
 * [Change publication mode](#change-publication-mode)
 * [Full QoS configuration](#full-qos-configuration)
+* [Change participant discovery options](#change-participant-discovery-options)
 * [Enable Zero Copy Data Sharing](#enable-zero-copy-data-sharing)
 
 ### Change publication mode
@@ -259,6 +260,12 @@ The following example configures Fast DDS to publish synchronously, to have a pr
         ```bash
         FASTRTPS_DEFAULT_PROFILES_FILE=<path_to_xml_file> RMW_FASTRTPS_USE_QOS_FROM_XML=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 run demo_nodes_cpp listener
         ```
+
+### Change participant discovery options
+
+ROS 2 allows controlling participant discovery with two environment variables: `ROS_AUTOMATIC_DISCOVERY_RANGE` and `ROS_STATIC_PEERS`.
+Full configuration of particpant discovery can also be set with XML files; however, the ROS specific environment variables should be disabled to prevent them from interferring.
+Set `ROS_AUTOMATIC_DISCOVERY_RANGE` to the value `SYSTEM_DEFAULT` to disable both ROS specific environment variables.
 
 ### Enable Zero Copy Data Sharing
 
