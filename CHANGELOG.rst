@@ -2,6 +2,11 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+8.1.0 (2023-12-26)
+------------------
+* Switch to target_link_libraries for linking. (`#734 <https://github.com/ros2/rmw_fastrtps/issues/734>`_)
+* Contributors: Chris Lalancette
+
 8.0.0 (2023-11-06)
 ------------------
 * Quiet compiler warning in Release mode. (`#730 <https://github.com/ros2/rmw_fastrtps/issues/730>`_)
