@@ -55,7 +55,7 @@ __rmw_send_request(
 
   eprosima::fastrtps::rtps::WriteParams wparams;
   rmw_fastrtps_shared_cpp::SerializedData data;
-  data.type = FASTRTPS_SERIALIZED_DATA_TYPE_ROS_MESSAGE;
+  data.is_cdr_buffer = false;
   data.data = const_cast<void *>(ros_request);
   data.impl = info->request_type_support_impl_;
   wparams.related_sample_identity().writer_guid() = info->reader_guid_;
@@ -98,9 +98,9 @@ __rmw_take_request(
 
   if (request.buffer_ != nullptr) {
     rmw_fastrtps_shared_cpp::SerializedData data;
-    data.type = FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER;
+    data.is_cdr_buffer = true;
     data.data = request.buffer_;
-    data.impl = nullptr;  // not used when type is FASTRTPS_SERIALIZED_DATA_TYPE_CDR_BUFFER
+    data.impl = nullptr;     // not used when is_cdr_buffer is true
 
     eprosima::fastdds::dds::StackAllocatedSequence<void *, 1> data_values;
     const_cast<void **>(data_values.buffer())[0] = &data;

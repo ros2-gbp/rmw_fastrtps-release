@@ -16,14 +16,9 @@
 
 #include "rmw/allocators.h"
 #include "rmw/error_handling.h"
-#include "rmw/get_topic_endpoint_info.h"
 #include "rmw/rmw.h"
 
-#include "rcpputils/scope_exit.hpp"
-
 #include "rmw/impl/cpp/macros.hpp"
-
-#include "rmw_dds_common/qos.hpp"
 
 #include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
 #include "rmw_fastrtps_shared_cpp/custom_publisher_info.hpp"
@@ -79,15 +74,6 @@ rmw_create_publisher(
     node->implementation_identifier,
     eprosima_fastrtps_identifier,
     return nullptr);
-  RMW_CHECK_ARGUMENT_FOR_NULL(qos_policies, nullptr);
-
-  // Adapt any 'best available' QoS options
-  rmw_qos_profile_t adapted_qos_policies = *qos_policies;
-  rmw_ret_t ret = rmw_dds_common::qos_profile_get_best_available_for_topic_publisher(
-    node, topic_name, &adapted_qos_policies, rmw_get_subscriptions_info_by_topic);
-  if (RMW_RET_OK != ret) {
-    return nullptr;
-  }
 
   auto participant_info =
     static_cast<CustomParticipantInfo *>(node->context->impl->participant_info);
@@ -95,38 +81,45 @@ rmw_create_publisher(
     participant_info,
     type_supports,
     topic_name,
-    &adapted_qos_policies,
-    publisher_options);
+    qos_policies,
+    publisher_options,
+    false,
+    true);
 
   if (!publisher) {
     return nullptr;
   }
-  auto cleanup_publisher = rcpputils::make_scope_exit(
-    [participant_info, publisher]() {
+
+  auto common_context = static_cast<rmw_dds_common::Context *>(node->context->impl->common);
+
+  auto info = static_cast<const CustomPublisherInfo *>(publisher->data);
+  {
+    // Update graph
+    std::lock_guard<std::mutex> guard(common_context->node_update_mutex);
+    rmw_dds_common::msg::ParticipantEntitiesInfo msg =
+      common_context->graph_cache.associate_writer(
+      info->publisher_gid, common_context->gid, node->name, node->namespace_);
+    rmw_ret_t rmw_ret = rmw_fastrtps_shared_cpp::__rmw_publish(
+      eprosima_fastrtps_identifier,
+      common_context->pub,
+      static_cast<void *>(&msg),
+      nullptr);
+    if (RMW_RET_OK != rmw_ret) {
       rmw_error_state_t error_state = *rmw_get_error_state();
       rmw_reset_error();
-      if (RMW_RET_OK != rmw_fastrtps_shared_cpp::destroy_publisher(
-        eprosima_fastrtps_identifier, participant_info, publisher))
-      {
+      static_cast<void>(common_context->graph_cache.dissociate_writer(
+        info->publisher_gid, common_context->gid, node->name, node->namespace_));
+      rmw_ret = rmw_fastrtps_shared_cpp::destroy_publisher(
+        eprosima_fastrtps_identifier, participant_info, publisher);
+      if (RMW_RET_OK != rmw_ret) {
         RMW_SAFE_FWRITE_TO_STDERR(rmw_get_error_string().str);
         RMW_SAFE_FWRITE_TO_STDERR(" during '" RCUTILS_STRINGIFY(__function__) "' cleanup\n");
         rmw_reset_error();
       }
       rmw_set_error_state(error_state.message, error_state.file, error_state.line_number);
-    });
-
-  auto common_context = static_cast<rmw_dds_common::Context *>(node->context->impl->common);
-  auto info = static_cast<const CustomPublisherInfo *>(publisher->data);
-
-  // Update graph
-  if (RMW_RET_OK != common_context->add_publisher_graph(
-      info->publisher_gid,
-      node->name, node->namespace_))
-  {
-    return nullptr;
+      return nullptr;
+    }
   }
-
-  cleanup_publisher.cancel();
   return publisher;
 }
 
