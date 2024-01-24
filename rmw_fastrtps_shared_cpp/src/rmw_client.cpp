@@ -44,27 +44,15 @@ __rmw_destroy_client(
     static_cast<CustomParticipantInfo *>(node->context->impl->participant_info);
   auto info = static_cast<CustomClientInfo *>(client->data);
 
-  {
-    // Update graph
-    std::lock_guard<std::mutex> guard(common_context->node_update_mutex);
-    rmw_gid_t gid = rmw_fastrtps_shared_cpp::create_rmw_gid(
-      identifier, info->request_writer_->guid());
-    common_context->graph_cache.dissociate_writer(
-      gid,
-      common_context->gid,
-      node->name,
-      node->namespace_);
-    gid = rmw_fastrtps_shared_cpp::create_rmw_gid(
-      identifier, info->response_reader_->guid());
-    rmw_dds_common::msg::ParticipantEntitiesInfo msg =
-      common_context->graph_cache.dissociate_reader(
-      gid, common_context->gid, node->name, node->namespace_);
-    final_ret = rmw_fastrtps_shared_cpp::__rmw_publish(
-      identifier,
-      common_context->pub,
-      static_cast<void *>(&msg),
-      nullptr);
-  }
+  // Update graph
+  rmw_gid_t request_publisher_gid = rmw_fastrtps_shared_cpp::create_rmw_gid(
+    identifier, info->request_writer_->guid());
+  rmw_gid_t response_subscriber_gid = rmw_fastrtps_shared_cpp::create_rmw_gid(
+    identifier, info->response_reader_->guid());
+  final_ret = common_context->remove_client_graph(
+    request_publisher_gid, response_subscriber_gid,
+    node->name, node->namespace_
+  );
 
   auto show_previous_error =
     [&final_ret]()
@@ -80,10 +68,6 @@ __rmw_destroy_client(
   // Delete DataWriter and DataReader
   {
     std::lock_guard<std::mutex> lck(participant_info->entity_creation_mutex_);
-
-    // Keep pointers to topics, so we can remove them later
-    auto response_topic = info->response_reader_->get_topicdescription();
-    auto request_topic = info->request_writer_->get_topic();
 
     // Delete DataReader
     ReturnCode_t ret = participant_info->subscriber_->delete_datareader(info->response_reader_);
@@ -114,8 +98,10 @@ __rmw_destroy_client(
     }
 
     // Delete topics and unregister types
-    remove_topic_and_type(participant_info, request_topic, info->request_type_support_);
-    remove_topic_and_type(participant_info, response_topic, info->response_type_support_);
+    remove_topic_and_type(
+      participant_info, nullptr, info->request_topic_, info->request_type_support_);
+    remove_topic_and_type(
+      participant_info, nullptr, info->response_topic_, info->response_type_support_);
 
     // Delete CustomClientInfo structure
     delete info;
