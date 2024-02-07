@@ -15,8 +15,6 @@
 #include "fastcdr/Cdr.h"
 #include "fastcdr/FastBuffer.h"
 
-#include "fastdds/rtps/common/Time_t.h"
-
 #include "rmw/allocators.h"
 #include "rmw/error_handling.h"
 #include "rmw/rmw.h"
@@ -59,10 +57,8 @@ __rmw_publish(
   data.type = FASTRTPS_SERIALIZED_DATA_TYPE_ROS_MESSAGE;
   data.data = const_cast<void *>(ros_message);
   data.impl = info->type_support_impl_;
-  eprosima::fastrtps::Time_t stamp;
-  eprosima::fastrtps::Time_t::now(stamp);
-  TRACETOOLS_TRACEPOINT(rmw_publish, publisher, ros_message, stamp.to_ns());
-  if (!info->data_writer_->write_w_timestamp(&data, eprosima::fastdds::dds::HANDLE_NIL, stamp)) {
+  TRACEPOINT(rmw_publish, ros_message);
+  if (!info->data_writer_->write(&data)) {
     RMW_SET_ERROR_MSG("cannot publish data");
     return RMW_RET_ERROR;
   }
@@ -139,13 +135,7 @@ __rmw_publish_loaned_message(
   RMW_CHECK_ARGUMENT_FOR_NULL(ros_message, RMW_RET_INVALID_ARGUMENT);
 
   auto info = static_cast<CustomPublisherInfo *>(publisher->data);
-  eprosima::fastrtps::Time_t stamp;
-  eprosima::fastrtps::Time_t::now(stamp);
-  TRACETOOLS_TRACEPOINT(rmw_publish, publisher, ros_message, stamp.to_ns());
-  if (!info->data_writer_->write_w_timestamp(
-      const_cast<void *>(ros_message),
-      eprosima::fastdds::dds::HANDLE_NIL, stamp))
-  {
+  if (!info->data_writer_->write(const_cast<void *>(ros_message))) {
     RMW_SET_ERROR_MSG("cannot publish data");
     return RMW_RET_ERROR;
   }

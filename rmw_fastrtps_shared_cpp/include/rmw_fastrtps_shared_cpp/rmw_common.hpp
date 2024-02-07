@@ -17,9 +17,6 @@
 
 #include "./visibility_control.h"
 
-#include "rcutils/allocator.h"
-#include "rcutils/types/string_array.h"
-
 #include "rmw/error_handling.h"
 #include "rmw/event.h"
 #include "rmw/features.h"
@@ -61,22 +58,6 @@ __rmw_count_subscribers(
   const char * identifier,
   const rmw_node_t * node,
   const char * topic_name,
-  size_t * count);
-
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-rmw_ret_t
-__rmw_count_clients(
-  const char * identifier,
-  const rmw_node_t * node,
-  const char * service_name,
-  size_t * count);
-
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-rmw_ret_t
-__rmw_count_services(
-  const char * identifier,
-  const rmw_node_t * node,
-  const char * service_name,
   size_t * count);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC

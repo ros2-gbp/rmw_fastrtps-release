@@ -2,42 +2,15 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-8.2.0 (2024-01-24)
+7.1.3 (2024-02-07)
 ------------------
-* Capture `std::bad_alloc` on deserializeROSmessage. (`#665 <https://github.com/ros2/rmw_fastrtps/issues/665>`_)
+* Capture `std::bad_alloc` on deserializeROSmessage. (`#738 <https://github.com/ros2/rmw_fastrtps/issues/738>`_)
 * Contributors: Miguel Company
 
-8.1.0 (2023-12-26)
+7.1.2 (2023-11-17)
 ------------------
-* Switch to target_link_libraries for linking. (`#734 <https://github.com/ros2/rmw_fastrtps/issues/734>`_)
+* Account for alignment on is_plain calculations. (`#731 <https://github.com/ros2/rmw_fastrtps/issues/731>`_)
 * Contributors: Chris Lalancette
-
-8.0.0 (2023-11-06)
-------------------
-* avoid using dds common public mutex directly (`#725 <https://github.com/ros2/rmw_fastrtps/issues/725>`_)
-* Contributors: Chen Lihui
-
-7.6.0 (2023-10-04)
-------------------
-* Account for alignment on is_plain calculations. (`#716 <https://github.com/ros2/rmw_fastrtps/issues/716>`_)
-* Add rmw_count clients,services impl (`#641 <https://github.com/ros2/rmw_fastrtps/issues/641>`_)
-* Improve node graph delivery by using a unique listening port (`#711 <https://github.com/ros2/rmw_fastrtps/issues/711>`_)
-* Contributors: Chris Lalancette, Miguel Company, Minju, Lee
-
-7.5.0 (2023-09-07)
-------------------
-
-7.4.0 (2023-08-21)
-------------------
-
-7.3.0 (2023-06-12)
-------------------
-
-7.2.1 (2023-05-11)
-------------------
-
-7.2.0 (2023-04-27)
-------------------
 
 7.1.1 (2023-04-12)
 ------------------

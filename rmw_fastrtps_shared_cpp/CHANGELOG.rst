@@ -2,55 +2,13 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-8.2.0 (2024-01-24)
+7.1.3 (2024-02-07)
 ------------------
-* Add timestamp to rmw_publish tracepoint (`#694 <https://github.com/ros2/rmw_fastrtps/issues/694>`_)
-* Switch to Unix line endings. (`#736 <https://github.com/ros2/rmw_fastrtps/issues/736>`_)
-* Contributors: Chris Lalancette, Christopher Wecht
 
-8.1.0 (2023-12-26)
+7.1.2 (2023-11-17)
 ------------------
-* Switch to target_link_libraries for linking. (`#734 <https://github.com/ros2/rmw_fastrtps/issues/734>`_)
-* Contributors: Chris Lalancette
-
-8.0.0 (2023-11-06)
-------------------
-* Quiet compiler warning in Release mode. (`#730 <https://github.com/ros2/rmw_fastrtps/issues/730>`_)
-* avoid using dds common public mutex directly (`#725 <https://github.com/ros2/rmw_fastrtps/issues/725>`_)
-* Contributors: Chen Lihui, Chris Lalancette
-
-7.6.0 (2023-10-04)
-------------------
-* Add rmw_count clients,services impl (`#641 <https://github.com/ros2/rmw_fastrtps/issues/641>`_)
-* Contributors: Minju, Lee
-
-7.5.0 (2023-09-07)
-------------------
-* Switch to using rclcpp::unique_lock. (`#712 <https://github.com/ros2/rmw_fastrtps/issues/712>`_)
-* Use DataWriter Qos to configure max_blocking_time on rmw_send_response (`#704 <https://github.com/ros2/rmw_fastrtps/issues/704>`_)
-* Contributors: Chris Lalancette, Miguel Company
-
-7.4.0 (2023-08-21)
-------------------
-* Clear out errors once we have handled them. (`#701 <https://github.com/ros2/rmw_fastrtps/issues/701>`_)
-* Instrument loaned message publication code path (`#698 <https://github.com/ros2/rmw_fastrtps/issues/698>`_)
-* Add in a missing data_reader check when creating subscription. (`#697 <https://github.com/ros2/rmw_fastrtps/issues/697>`_)
-* Contributors: Chris Lalancette, Christophe Bedard
-
-7.3.0 (2023-06-12)
-------------------
-* Use TRACETOOLS\_ prefix for tracepoint-related macros (`#686 <https://github.com/ros2/rmw_fastrtps/issues/686>`_)
-* typo fix. (`#693 <https://github.com/ros2/rmw_fastrtps/issues/693>`_)
-* Contributors: Christophe Bedard, Tomoya Fujita
-
-7.2.1 (2023-05-11)
-------------------
-* address clang nightly build error. (`#689 <https://github.com/ros2/rmw_fastrtps/issues/689>`_)
-* Check for errors while doing an rmw_discovery_options_copy. (`#690 <https://github.com/ros2/rmw_fastrtps/issues/690>`_)
-* Contributors: Chris Lalancette, Tomoya Fujita
-
-7.2.0 (2023-04-27)
-------------------
+* Use DataWriter Qos to configure max_blocking_time on rmw_send_response (`#708 <https://github.com/ros2/rmw_fastrtps/issues/708>`_)
+* Contributors: Miguel Company
 
 7.1.1 (2023-04-12)
 ------------------
