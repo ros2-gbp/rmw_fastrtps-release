@@ -1,3 +1,29 @@
+## rmw_fastrtps (rolling) - 8.4.0-1
+
+The packages in the `rmw_fastrtps` repository were released into the `rolling` distro by running `/home/marcogg/.local/bin/bloom-release rmw_fastrtps --rosdistro rolling` on `Tue, 09 Apr 2024 06:19:09 -0000`
+
+These packages were released:
+- `rmw_fastrtps_cpp`
+- `rmw_fastrtps_dynamic_cpp`
+- `rmw_fastrtps_shared_cpp`
+
+Version of package(s) in repository `rmw_fastrtps`:
+
+- upstream repository: https://github.com/ros2/rmw_fastrtps.git
+- release repository: https://github.com/ros2-gbp/rmw_fastrtps-release.git
+- rosdistro version: `8.3.0-1`
+- old version: `8.3.0-1`
+- new version: `8.4.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.12.0`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## rmw_fastrtps (rolling) - 8.3.0-1
 
 The packages in the `rmw_fastrtps` repository were released into the `rolling` distro by running `/usr/bin/bloom-release rmw_fastrtps --rosdistro rolling` on `Thu, 28 Mar 2024 08:34:15 -0000`
