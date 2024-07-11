@@ -165,9 +165,6 @@ fill_data_entity_qos_from_profile(
       "rmw_fastrtps_shared_cpp",
       "Failed to encode type hash for topic, will not distribute it in USER_DATA.");
     user_data_str.clear();
-    // Since we are going to go on without a hash, we clear the error so other
-    // code won't overwrite it.
-    rmw_reset_error();
   }
   std::vector<uint8_t> user_data(user_data_str.begin(), user_data_str.end());
   entity_qos.user_data().resize(user_data.size());
@@ -181,15 +178,7 @@ get_datareader_qos(
   const rosidl_type_hash_t & type_hash,
   eprosima::fastdds::dds::DataReaderQos & datareader_qos)
 {
-  if (fill_data_entity_qos_from_profile(qos_policies, type_hash, datareader_qos)) {
-    // The type support in the RMW implementation is always XCDR1.
-    constexpr auto rep = eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION;
-    datareader_qos.type_consistency().representation.clear();
-    datareader_qos.type_consistency().representation.m_value.push_back(rep);
-    return true;
-  }
-
-  return false;
+  return fill_data_entity_qos_from_profile(qos_policies, type_hash, datareader_qos);
 }
 
 bool
@@ -198,15 +187,7 @@ get_datawriter_qos(
   const rosidl_type_hash_t & type_hash,
   eprosima::fastdds::dds::DataWriterQos & datawriter_qos)
 {
-  if (fill_data_entity_qos_from_profile(qos_policies, type_hash, datawriter_qos)) {
-    // The type support in the RMW implementation is always XCDR1.
-    constexpr auto rep = eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION;
-    datawriter_qos.representation().clear();
-    datawriter_qos.representation().m_value.push_back(rep);
-    return true;
-  }
-
-  return false;
+  return fill_data_entity_qos_from_profile(qos_policies, type_hash, datawriter_qos);
 }
 
 bool

@@ -125,7 +125,7 @@ _take(
     }
   }
 
-  TRACETOOLS_TRACEPOINT(
+  TRACEPOINT(
     rmw_take,
     static_cast<const void *>(subscription),
     static_cast<const void *>(ros_message),
@@ -348,12 +348,7 @@ _take_serialized_message(
       break;
     }
   }
-  TRACETOOLS_TRACEPOINT(
-    rmw_take,
-    static_cast<const void *>(subscription),
-    static_cast<const void *>(serialized_message),
-    (message_info ? message_info->source_timestamp : 0LL),
-    *taken);
+
   return RMW_RET_OK;
 }
 

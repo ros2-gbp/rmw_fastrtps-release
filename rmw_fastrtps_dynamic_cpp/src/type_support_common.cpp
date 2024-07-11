@@ -14,7 +14,7 @@
 
 #include "rmw/error_handling.h"
 
-#include "TypeSupport.hpp"
+#include "rmw_fastrtps_dynamic_cpp/TypeSupport.hpp"
 
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
 
@@ -25,15 +25,12 @@
 bool
 using_introspection_c_typesupport(const char * typesupport_identifier)
 {
-  return strcmp(
-    typesupport_identifier,
-    rosidl_typesupport_introspection_c__identifier) == 0;
+  return typesupport_identifier == rosidl_typesupport_introspection_c__identifier;
 }
 
 bool
 using_introspection_cpp_typesupport(const char * typesupport_identifier)
 {
-  return strcmp(
-    typesupport_identifier,
-    rosidl_typesupport_introspection_cpp::typesupport_identifier) == 0;
+  return typesupport_identifier ==
+         rosidl_typesupport_introspection_cpp::typesupport_identifier;
 }
