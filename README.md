@@ -1,3 +1,29 @@
+## rmw_fastrtps (humble) - 6.2.7-1
+
+The packages in the `rmw_fastrtps` repository were released into the `humble` distro by running `/usr/bin/bloom-release -r humble -y rmw_fastrtps` on `Fri, 26 Jul 2024 15:20:17 -0000`
+
+These packages were released:
+- `rmw_fastrtps_cpp`
+- `rmw_fastrtps_dynamic_cpp`
+- `rmw_fastrtps_shared_cpp`
+
+Version of package(s) in repository `rmw_fastrtps`:
+
+- upstream repository: https://github.com/ros2/rmw_fastrtps.git
+- release repository: https://github.com/ros2-gbp/rmw_fastrtps-release.git
+- rosdistro version: `6.2.6-1`
+- old version: `6.2.6-1`
+- new version: `6.2.7-1`
+
+Versions of tools used:
+
+- bloom version: `0.12.0`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.24.0`
+- rosdistro version: `0.9.1`
+- vcstools version: `0.1.42`
+
+
 ## rmw_fastrtps (iron) - 7.1.4-1
 
 The packages in the `rmw_fastrtps` repository were released into the `iron` distro by running `/usr/bin/bloom-release --rosdistro iron rmw_fastrtps` on `Thu, 11 Jul 2024 06:04:23 -0000`
