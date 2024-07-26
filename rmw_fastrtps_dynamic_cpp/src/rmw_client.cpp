@@ -36,8 +36,6 @@
 #include "rmw/rmw.h"
 #include "rmw/validate_full_topic_name.h"
 
-#include "rmw_dds_common/qos.hpp"
-
 #include "rosidl_typesupport_introspection_cpp/identifier.hpp"
 
 #include "rosidl_typesupport_introspection_c/identifier.h"
@@ -93,12 +91,9 @@ rmw_create_client(
     }
   }
 
-  rmw_qos_profile_t adapted_qos_policies =
-    rmw_dds_common::qos_profile_update_best_available_for_services(*qos_policies);
-
   /////
   // Check RMW QoS
-  if (!is_valid_qos(adapted_qos_policies)) {
+  if (!is_valid_qos(*qos_policies)) {
     RMW_SET_ERROR_MSG("create_client() called with invalid QoS");
     return nullptr;
   }
@@ -155,9 +150,9 @@ rmw_create_client(
     untyped_response_members, type_support->typesupport_identifier);
 
   std::string response_topic_name = _create_topic_name(
-    &adapted_qos_policies, ros_service_response_prefix, service_name, "Reply").to_string();
+    qos_policies, ros_service_response_prefix, service_name, "Reply").to_string();
   std::string request_topic_name = _create_topic_name(
-    &adapted_qos_policies, ros_service_requester_prefix, service_name, "Request").to_string();
+    qos_policies, ros_service_requester_prefix, service_name, "Request").to_string();
 
   // Get request topic and type
   eprosima::fastdds::dds::TypeSupport request_fastdds_type;
@@ -200,13 +195,15 @@ rmw_create_client(
   }
 
   auto cleanup_info = rcpputils::make_scope_exit(
-    [info, participant_info]() {
-      rmw_fastrtps_shared_cpp::remove_topic_and_type(
-        participant_info, nullptr, info->response_topic_, info->response_type_support_);
-      rmw_fastrtps_shared_cpp::remove_topic_and_type(
-        participant_info, nullptr, info->request_topic_, info->request_type_support_);
+    [info, dds_participant]() {
       delete info->pub_listener_;
       delete info->listener_;
+      if (info->response_type_support_) {
+        dds_participant->unregister_type(info->response_type_support_.get_type_name());
+      }
+      if (info->request_type_support_) {
+        dds_participant->unregister_type(info->request_type_support_.get_type_name());
+      }
       delete info;
     });
 
@@ -292,31 +289,35 @@ rmw_create_client(
   // Create and register Topics
   // Same default topic QoS for both topics
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
-  if (!get_topic_qos(adapted_qos_policies, topic_qos)) {
+  if (!get_topic_qos(*qos_policies, topic_qos)) {
     RMW_SET_ERROR_MSG("create_client() failed setting topic QoS");
     return nullptr;
   }
 
   // Create response topic
-  info->response_topic_ = participant_info->find_or_create_topic(
-    response_topic_name, response_type_name, topic_qos, nullptr);
-  if (!info->response_topic_) {
+  rmw_fastrtps_shared_cpp::TopicHolder response_topic;
+  if (!rmw_fastrtps_shared_cpp::cast_or_create_topic(
+      dds_participant, response_topic_desc,
+      response_topic_name, response_type_name, topic_qos, false, &response_topic))
+  {
     RMW_SET_ERROR_MSG("create_client() failed to create response topic");
     return nullptr;
   }
 
-  response_topic_desc = info->response_topic_;
+  response_topic_desc = response_topic.desc;
 
   // Create request topic
-  info->request_topic_ = participant_info->find_or_create_topic(
-    request_topic_name, request_type_name, topic_qos, nullptr);
-  if (!info->request_topic_) {
+  rmw_fastrtps_shared_cpp::TopicHolder request_topic;
+  if (!rmw_fastrtps_shared_cpp::cast_or_create_topic(
+      dds_participant, request_topic_desc,
+      request_topic_name, request_type_name, topic_qos, true, &request_topic))
+  {
     RMW_SET_ERROR_MSG("create_client() failed to create request topic");
     return nullptr;
   }
 
-  info->request_topic_name_ = request_topic_name;
-  info->response_topic_name_ = response_topic_name;
+  info->request_topic_ = request_topic_name;
+  info->response_topic_ = response_topic_name;
 
   // Keyword to find DataWrtier and DataReader QoS
   const std::string topic_name_fallback = "client";
@@ -345,11 +346,7 @@ rmw_create_client(
     reader_qos.data_sharing().off();
   }
 
-  if (!get_datareader_qos(
-      adapted_qos_policies,
-      *type_supports->response_typesupport->get_type_hash_func(type_supports->response_typesupport),
-      reader_qos))
-  {
+  if (!get_datareader_qos(*qos_policies, reader_qos)) {
     RMW_SET_ERROR_MSG("create_client() failed setting response DataReader QoS");
     return nullptr;
   }
@@ -403,18 +400,14 @@ rmw_create_client(
     writer_qos.data_sharing().off();
   }
 
-  if (!get_datawriter_qos(
-      adapted_qos_policies,
-      *type_supports->request_typesupport->get_type_hash_func(type_supports->request_typesupport),
-      writer_qos))
-  {
+  if (!get_datawriter_qos(*qos_policies, writer_qos)) {
     RMW_SET_ERROR_MSG("create_client() failed setting request DataWriter QoS");
     return nullptr;
   }
 
   // Creates DataWriter
   info->request_writer_ = publisher->create_datawriter(
-    info->request_topic_,
+    request_topic.topic,
     writer_qos,
     info->pub_listener_,
     eprosima::fastdds::dds::StatusMask::publication_matched());
@@ -507,6 +500,8 @@ rmw_create_client(
     }
   }
 
+  request_topic.should_be_deleted = false;
+  response_topic.should_be_deleted = false;
   cleanup_rmw_client.cancel();
   cleanup_datawriter.cancel();
   cleanup_datareader.cancel();

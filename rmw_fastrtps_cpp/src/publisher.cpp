@@ -51,13 +51,17 @@
 
 #include "type_support_common.hpp"
 
+using DataSharingKind = eprosima::fastdds::dds::DataSharingKind;
+
 rmw_publisher_t *
 rmw_fastrtps_cpp::create_publisher(
-  CustomParticipantInfo * participant_info,
+  const CustomParticipantInfo * participant_info,
   const rosidl_message_type_support_t * type_supports,
   const char * topic_name,
   const rmw_qos_profile_t * qos_policies,
-  const rmw_publisher_options_t * publisher_options)
+  const rmw_publisher_options_t * publisher_options,
+  bool keyed,
+  bool create_publisher_listener)
 {
   /////
   // Check input parameters
@@ -162,11 +166,11 @@ rmw_fastrtps_cpp::create_publisher(
   }
 
   auto cleanup_info = rcpputils::make_scope_exit(
-    [info, participant_info]() {
-      rmw_fastrtps_shared_cpp::remove_topic_and_type(
-        participant_info, info->publisher_event_, info->topic_, info->type_support_);
-      delete info->data_writer_listener_;
-      delete info->publisher_event_;
+    [info, dds_participant]() {
+      delete info->listener_;
+      if (info->type_support_) {
+        dds_participant->unregister_type(info->type_support_.get_type_name());
+      }
       delete info;
     });
 
@@ -186,6 +190,11 @@ rmw_fastrtps_cpp::create_publisher(
     fastdds_type.reset(tsupport);
   }
 
+  if (keyed && !fastdds_type->m_isGetKeyDefined) {
+    RMW_SET_ERROR_MSG("create_publisher() requested a keyed topic with a non-keyed type");
+    return nullptr;
+  }
+
   if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_publisher() failed to register type");
     return nullptr;
@@ -201,16 +210,13 @@ rmw_fastrtps_cpp::create_publisher(
 
   /////
   // Create Listener
-  info->publisher_event_ = new (std::nothrow) RMWPublisherEvent(info);
-  if (!info->publisher_event_) {
-    RMW_SET_ERROR_MSG("create_publisher() could not create publisher event");
-    return nullptr;
-  }
+  if (create_publisher_listener) {
+    info->listener_ = new (std::nothrow) PubListener(info);
 
-  info->data_writer_listener_ = new (std::nothrow) CustomDataWriterListener(info->publisher_event_);
-  if (!info->data_writer_listener_) {
-    RMW_SET_ERROR_MSG("create_publisher() could not create publisher data writer listener");
-    return nullptr;
+    if (!info->listener_) {
+      RMW_SET_ERROR_MSG("create_publisher() could not create publisher listener");
+      return nullptr;
+    }
   }
 
   /////
@@ -221,9 +227,11 @@ rmw_fastrtps_cpp::create_publisher(
     return nullptr;
   }
 
-  info->topic_ = participant_info->find_or_create_topic(
-    topic_name_mangled, type_name, topic_qos, info->publisher_event_);
-  if (!info->topic_) {
+  rmw_fastrtps_shared_cpp::TopicHolder topic;
+  if (!rmw_fastrtps_shared_cpp::cast_or_create_topic(
+      dds_participant, des_topic,
+      topic_name_mangled, type_name, topic_qos, true, &topic))
+  {
     RMW_SET_ERROR_MSG("create_publisher() failed to create topic");
     return nullptr;
   }
@@ -256,19 +264,16 @@ rmw_fastrtps_cpp::create_publisher(
   }
 
   // Get QoS from RMW
-  if (!get_datawriter_qos(
-      *qos_policies, *type_supports->get_type_hash_func(type_supports),
-      writer_qos))
-  {
+  if (!get_datawriter_qos(*qos_policies, writer_qos)) {
     RMW_SET_ERROR_MSG("create_publisher() failed setting data writer QoS");
     return nullptr;
   }
 
   // Creates DataWriter with a mask enabling publication_matched calls for the listener
   info->data_writer_ = publisher->create_datawriter(
-    info->topic_,
+    topic.topic,
     writer_qos,
-    info->data_writer_listener_,
+    info->listener_,
     eprosima::fastdds::dds::StatusMask::publication_matched());
 
   if (!info->data_writer_) {
@@ -304,7 +309,8 @@ rmw_fastrtps_cpp::create_publisher(
       rmw_publisher_free(rmw_publisher);
     });
 
-  rmw_publisher->can_loan_messages = info->type_support_->is_plain();
+  bool has_data_sharing = DataSharingKind::OFF != writer_qos.data_sharing().kind();
+  rmw_publisher->can_loan_messages = has_data_sharing && info->type_support_->is_plain();
   rmw_publisher->implementation_identifier = eprosima_fastrtps_identifier;
   rmw_publisher->data = info;
 
@@ -317,6 +323,7 @@ rmw_fastrtps_cpp::create_publisher(
 
   rmw_publisher->options = *publisher_options;
 
+  topic.should_be_deleted = false;
   cleanup_rmw_publisher.cancel();
   cleanup_datawriter.cancel();
   cleanup_info.cancel();
