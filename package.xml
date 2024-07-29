@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rmw_fastrtps_dynamic_cpp</name>
-  <version>9.0.0</version>
+  <version>9.0.1</version>
   <description>Implement the ROS middleware interface using introspection type support.</description>
 
   <maintainer email="geoff@openrobotics.org">Geoffrey Biggs</maintainer>
@@ -31,6 +31,7 @@
   <build_depend>rosidl_runtime_c</build_depend>
   <build_depend>rosidl_typesupport_introspection_c</build_depend>
   <build_depend>rosidl_typesupport_introspection_cpp</build_depend>
+  <build_depend>tracetools</build_depend>
 
   <build_export_depend>fastcdr</build_export_depend>
   <build_export_depend>fastrtps</build_export_depend>
@@ -43,12 +44,14 @@
   <build_export_depend>rosidl_runtime_c</build_export_depend>
   <build_export_depend>rosidl_typesupport_introspection_c</build_export_depend>
   <build_export_depend>rosidl_typesupport_introspection_cpp</build_export_depend>
+  <build_export_depend>tracetools</build_export_depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <test_depend>osrf_testing_tools_cpp</test_depend>
   <test_depend>test_msgs</test_depend>
+  <exec_depend>tracetools</exec_depend>
 
   <member_of_group>rmw_implementation_packages</member_of_group>
 
