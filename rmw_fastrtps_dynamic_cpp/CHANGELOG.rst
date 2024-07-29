@@ -2,33 +2,122 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-6.2.7 (2024-07-26)
+9.0.1 (2024-07-29)
+------------------
+* Add tracing instrumentation to rmw_fastrtps_dynamic_cpp (`#772 <https://github.com/ros2/rmw_fastrtps/issues/772>`_)
+* Contributors: Christophe Bedard
+
+9.0.0 (2024-06-17)
 ------------------
 
-6.2.6 (2024-01-24)
-------------------
-* Capture `std::bad_alloc` on deserializeROSmessage. (`#665 <https://github.com/ros2/rmw_fastrtps/issues/665>`_) (`#737 <https://github.com/ros2/rmw_fastrtps/issues/737>`_)
-* Contributors: mergify[bot]
-
-6.2.5 (2023-11-13)
-------------------
-* Account for alignment on is_plain calculations. (`#716 <https://github.com/ros2/rmw_fastrtps/issues/716>`_) (`#732 <https://github.com/ros2/rmw_fastrtps/issues/732>`_)
-* Contributors: mergify[bot]
-
-6.2.4 (2023-09-19)
-------------------
-* Fix incoherent dissociate_writer to dissociate_reader (`#647 <https://github.com/ros2/rmw_fastrtps/issues/647>`_) (`#649 <https://github.com/ros2/rmw_fastrtps/issues/649>`_) (`#651 <https://github.com/ros2/rmw_fastrtps/issues/651>`_)
-* update fast-dds version into 2.6.2. (`#702 <https://github.com/ros2/rmw_fastrtps/issues/702>`_)
-* Contributors: Tomoya Fujita, mergify[bot]
-
-6.2.3 (2023-07-18)
+8.5.0 (2024-04-26)
 ------------------
 
-6.2.2 (2022-11-07)
+8.4.0 (2024-04-09)
 ------------------
-* Use Fast-DDS Waitsets instead of listeners (backport `#619 <https://github.com/ros2/rmw_fastrtps/issues/619>`_) (`#633 <https://github.com/ros2/rmw_fastrtps/issues/633>`_)
-* Allow null arguments in the EventsExecutor parameters (`#605 <https://github.com/ros2/rmw_fastrtps/issues/605>`_)
-* Contributors: Jose Luis Rivero, Miguel Company
+
+8.3.0 (2024-03-28)
+------------------
+* Support Fast CDR v2 (`#746 <https://github.com/ros2/rmw_fastrtps/issues/746>`_)
+  * Require fastcdr version 2
+  * Changes to build rmw_fastrtps_shared_cpp
+  * Changes to build rmw_fastrtps_cpp
+  * Changes to build rmw_fastrtps_dynamic_cpp
+* compare string contents but string pointer addresses. (`#744 <https://github.com/ros2/rmw_fastrtps/issues/744>`_)
+* Improve wide string (de)serialization in rwm_dynamic_fastrtps_cpp (`#740 <https://github.com/ros2/rmw_fastrtps/issues/740>`_)
+  * Move type support headers to src
+  * Fix references to moved headers
+  * move macros.hpp to src/serialization_helpers.hpp
+  * Move other non-api headers
+  * Move common code into serialize_wide_string.
+  * Move common code into deserialize_wide_string.
+  * Move serialization into serialization_helpers.hpp
+  * Move deserialization into serialization_helpers.hpp
+  * Fix header guards
+  * Linters
+  * Do not account for extra character on serialized size calculation
+  * Remove dependency on rosidl_typesupport_fastrtps_c(pp)
+  ---------
+* Contributors: Miguel Company, Tomoya Fujita
+
+8.2.0 (2024-01-24)
+------------------
+* Capture `std::bad_alloc` on deserializeROSmessage. (`#665 <https://github.com/ros2/rmw_fastrtps/issues/665>`_)
+* Contributors: Miguel Company
+
+8.1.0 (2023-12-26)
+------------------
+* Switch to target_link_libraries for linking. (`#734 <https://github.com/ros2/rmw_fastrtps/issues/734>`_)
+* Contributors: Chris Lalancette
+
+8.0.0 (2023-11-06)
+------------------
+* avoid using dds common public mutex directly (`#725 <https://github.com/ros2/rmw_fastrtps/issues/725>`_)
+* Contributors: Chen Lihui
+
+7.6.0 (2023-10-04)
+------------------
+* Account for alignment on is_plain calculations. (`#716 <https://github.com/ros2/rmw_fastrtps/issues/716>`_)
+* Add rmw_count clients,services impl (`#641 <https://github.com/ros2/rmw_fastrtps/issues/641>`_)
+* Improve node graph delivery by using a unique listening port (`#711 <https://github.com/ros2/rmw_fastrtps/issues/711>`_)
+* Contributors: Chris Lalancette, Miguel Company, Minju, Lee
+
+7.5.0 (2023-09-07)
+------------------
+
+7.4.0 (2023-08-21)
+------------------
+
+7.3.0 (2023-06-12)
+------------------
+
+7.2.1 (2023-05-11)
+------------------
+
+7.2.0 (2023-04-27)
+------------------
+
+7.1.1 (2023-04-12)
+------------------
+
+7.1.0 (2023-04-12)
+------------------
+* Dynamic Subscription (BONUS: Allocators): rmw_fastrtps (`#687 <https://github.com/ros2/rmw_fastrtps/issues/687>`_)
+* Runtime Interface Reflection: rmw_fastrtps (`#655 <https://github.com/ros2/rmw_fastrtps/issues/655>`_)
+* [rmw_fastrtps] Improve handling of dynamic discovery (`#653 <https://github.com/ros2/rmw_fastrtps/issues/653>`_)
+* Call get_type_hash_func (`#680 <https://github.com/ros2/rmw_fastrtps/issues/680>`_)
+* Type hash distribution in discovery (rep2011) (`#671 <https://github.com/ros2/rmw_fastrtps/issues/671>`_)
+* Implement inconsistent topic event (`#654 <https://github.com/ros2/rmw_fastrtps/issues/654>`_)
+* Update all rmw_fastrtps packages to C++17. (`#674 <https://github.com/ros2/rmw_fastrtps/issues/674>`_)
+* Contributors: Chris Lalancette, Emerson Knapp, Geoffrey Biggs, methylDragon
+
+7.0.0 (2023-02-14)
+------------------
+* Rewrite how Topics are tracked in rmw_fastrtps_cpp. (`#669 <https://github.com/ros2/rmw_fastrtps/issues/669>`_)
+* Allow loaned messages without data-sharing (`#568 <https://github.com/ros2/rmw_fastrtps/issues/568>`_)
+* Fix incoherent dissociate_writer to dissociate_reader (`#647 <https://github.com/ros2/rmw_fastrtps/issues/647>`_) (`#649 <https://github.com/ros2/rmw_fastrtps/issues/649>`_)
+* [rolling] Update maintainers - 2022-11-07 (`#643 <https://github.com/ros2/rmw_fastrtps/issues/643>`_)
+* Contributors: Audrow Nash, Chris Lalancette, Miguel Company, Oscarchoi
+
+6.5.0 (2022-11-02)
+------------------
+* Add rmw_get_gid_for_client impl (`#631 <https://github.com/ros2/rmw_fastrtps/issues/631>`_)
+* Contributors: Brian
+
+6.4.0 (2022-09-13)
+------------------
+* Use Fast-DDS Waitsets instead of listeners (`#619 <https://github.com/ros2/rmw_fastrtps/issues/619>`_)
+* Revert "add line feed for RCUTILS_SAFE_FWRITE_TO_STDERR (`#608 <https://github.com/ros2/rmw_fastrtps/issues/608>`_)" (`#612 <https://github.com/ros2/rmw_fastrtps/issues/612>`_)
+* add line feed for RCUTILS_SAFE_FWRITE_TO_STDERR (`#608 <https://github.com/ros2/rmw_fastrtps/issues/608>`_)
+* Allow null arguments in the EventsExecutor parameters (`#602 <https://github.com/ros2/rmw_fastrtps/issues/602>`_)
+* Add EventExecutor to rmw_fastrtps_dynamic_cpp
+* Fix cpplint error (`#601 <https://github.com/ros2/rmw_fastrtps/issues/601>`_)
+* Contributors: Jose Luis Rivero, Ricardo González, Tomoya Fujita
+
+6.3.0 (2022-05-03)
+------------------
+* Handle 'best_available' QoS policies (`#598 <https://github.com/ros2/rmw_fastrtps/issues/598>`_)
+* Contributors: Jacob Perron
 
 6.2.1 (2022-03-28)
 ------------------
