@@ -2,6 +2,18 @@
 Changelog for package rmw_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+9.3.0 (2025-03-04)
+------------------
+* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
+* Contributors: Carlos Espinoza Curto
+
+9.2.1 (2025-02-17)
+------------------
+* Export a modern CMake target (`#805 <https://github.com/ros2/rmw_fastrtps/issues/805>`_)
+* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
+* Fix some overwritten errors in rmw_fastrtps. (`#799 <https://github.com/ros2/rmw_fastrtps/issues/799>`_)
+* Contributors: Chris Lalancette, Miguel Company, Shane Loretz
+
 9.2.0 (2024-12-20)
 ------------------
 * Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
