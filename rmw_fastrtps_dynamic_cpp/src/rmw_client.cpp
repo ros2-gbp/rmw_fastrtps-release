@@ -25,7 +25,7 @@
 #include "fastdds/dds/topic/TypeSupport.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/resources/ResourceManagement.h"
+#include "fastdds/rtps/attributes/ResourceManagement.hpp"
 
 #include "rcpputils/scope_exit.hpp"
 #include "rcutils/logging_macros.h"
@@ -265,13 +265,13 @@ rmw_create_client(
     response_fastdds_type.reset(tsupport);
   }
 
-  if (ReturnCode_t::RETCODE_OK != request_fastdds_type.register_type(dds_participant)) {
+  if (eprosima::fastdds::dds::RETCODE_OK != request_fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_client() failed to register request type");
     return nullptr;
   }
   info->request_type_support_ = request_fastdds_type;
 
-  if (ReturnCode_t::RETCODE_OK != response_fastdds_type.register_type(dds_participant)) {
+  if (eprosima::fastdds::dds::RETCODE_OK != response_fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_client() failed to register response type");
     return nullptr;
   }
@@ -296,7 +296,7 @@ rmw_create_client(
   // Same default topic QoS for both topics
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(adapted_qos_policies, topic_qos)) {
-    RMW_SET_ERROR_MSG("create_client() failed setting topic QoS");
+    // get_topic_qos already set the error
     return nullptr;
   }
 
@@ -327,7 +327,7 @@ rmw_create_client(
   /////
   // Create response DataReader
 
-  // If FASTRTPS_DEFAULT_PROFILES_FILE defined, fill DataReader QoS with a subscriber profile
+  // If FASTDDS_DEFAULT_PROFILES_FILE defined, fill DataReader QoS with a subscriber profile
   // located based on topic name defined by _create_topic_name(). If no profile is found, a search
   // with profile_name "client" is attempted. Else, use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -343,7 +343,7 @@ rmw_create_client(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }
@@ -378,7 +378,7 @@ rmw_create_client(
       subscriber->delete_datareader(info->response_reader_);
     });
 
-  // If FASTRTPS_DEFAULT_PROFILES_FILE defined, fill DataWriter QoS with a publisher profile
+  // If FASTDDS_DEFAULT_PROFILES_FILE defined, fill DataWriter QoS with a publisher profile
   // located based on topic name defined by _create_topic_name(). If no profile is found, a search
   // with profile_name "client" is attempted. Else, use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataWriterQos writer_qos = publisher->get_default_datawriter_qos();
@@ -395,13 +395,13 @@ rmw_create_client(
   // Modify specific DataWriter Qos
   if (!participant_info->leave_middleware_default_qos) {
     if (participant_info->publishing_mode == publishing_mode_t::ASYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastrtps::ASYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
     } else if (participant_info->publishing_mode == publishing_mode_t::SYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastrtps::SYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
     }
 
     writer_qos.endpoint().history_memory_policy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     writer_qos.data_sharing().off();
   }
@@ -494,7 +494,7 @@ rmw_create_client(
   cleanup_info.cancel();
   if (TRACETOOLS_TRACEPOINT_ENABLED(rmw_client_init)) {
     rmw_gid_t gid{};
-    rmw_fastrtps_shared_cpp::copy_from_fastrtps_guid_to_byte_array(info->reader_guid_, gid.data);
+    rmw_fastrtps_shared_cpp::copy_from_fastdds_guid_to_byte_array(info->reader_guid_, gid.data);
     TRACETOOLS_DO_TRACEPOINT(rmw_client_init, static_cast<const void *>(rmw_client), gid.data);
   }
   return rmw_client;
