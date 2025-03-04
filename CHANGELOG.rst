@@ -2,6 +2,19 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+9.3.0 (2025-03-04)
+------------------
+* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
+* Contributors: Carlos Espinoza Curto
+
+9.2.1 (2025-02-17)
+------------------
+* Use rmw_security_common (`#803 <https://github.com/ros2/rmw_fastrtps/issues/803>`_)
+* introduce RMW_EVENT_TYPE_MAX in rmw_event_type_t. (`#785 <https://github.com/ros2/rmw_fastrtps/issues/785>`_)
+* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
+* Cleanup one test in rmw_fastrtps_shared_cpp. (`#794 <https://github.com/ros2/rmw_fastrtps/issues/794>`_)
+* Contributors: Alejandro Hernández Cordero, Chris Lalancette, Miguel Company, Tomoya Fujita
+
 9.2.0 (2024-12-20)
 ------------------
 * Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
