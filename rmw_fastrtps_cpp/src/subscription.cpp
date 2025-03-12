@@ -25,9 +25,10 @@
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/attributes/ResourceManagement.hpp"
+#include "fastdds/rtps/resources/ResourceManagement.h"
 
-#include "fastdds/dds/xtypes/dynamic_types/DynamicType.hpp"
+#include "fastrtps/types/DynamicType.h"
+#include "fastrtps/types/DynamicTypePtr.h"
 
 #include "rcutils/allocator.h"
 #include "rcutils/error_handling.h"
@@ -59,7 +60,7 @@
 
 #include "type_support_common.hpp"
 
-using PropertyPolicyHelper = eprosima::fastdds::rtps::PropertyPolicyHelper;
+using PropertyPolicyHelper = eprosima::fastrtps::rtps::PropertyPolicyHelper;
 
 namespace rmw_fastrtps_cpp
 {
@@ -184,12 +185,12 @@ __create_dynamic_subscription(
   // Find and check existing topic and type
 
   // Create Topic and Type names
-  auto dyn_type_ptr = eprosima::fastdds::dds::DynamicType::_ref_type(
-    *static_cast<eprosima::fastdds::dds::DynamicType::_ref_type *>(
+  auto dyn_type_ptr = eprosima::fastrtps::types::DynamicType_ptr(
+    *static_cast<eprosima::fastrtps::types::DynamicType_ptr *>(
       ts_impl->dynamic_message_type->impl.handle));
 
   // Check if we need to split the name into namespace and type name
-  std::string type_name = dyn_type_ptr->get_name().to_string();
+  std::string type_name = dyn_type_ptr->get_name();
 
   int occurrences = 0;
   std::string::size_type pos = 0;
@@ -279,24 +280,23 @@ __create_dynamic_subscription(
     //                     We will still need a DynamicPubSubType later on (constructed from a
     //                     DynamicType_ptr) to convert the CDR buffer to a DynamicData, however...
     // fastdds_type.reset(dyn_type_ptr);
-    auto tsupport = new
-      (std::nothrow) TypeSupport_cpp(type_support);  // NOT MessageTypeSupport_cpp!
+    auto tsupport = new (std::nothrow) TypeSupport_cpp();  // NOT MessageTypeSupport_cpp!!!
     if (!tsupport) {
       RMW_SET_ERROR_MSG("create_subscription() failed to allocate TypeSupport");
       return nullptr;
     }
 
     // Because we're using TypeSupport_cpp, we need to do this
-    tsupport->set_name(type_name.c_str());
+    tsupport->setName(type_name.c_str());
     fastdds_type.reset(tsupport);
   }
 
-  if (keyed && !fastdds_type->is_compute_key_provided) {
+  if (keyed && !fastdds_type->m_isGetKeyDefined) {
     RMW_SET_ERROR_MSG("create_subscription() requested a keyed topic with a non-keyed type");
     return nullptr;
   }
 
-  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_subscription() failed to register type");
     return nullptr;
   }
@@ -367,7 +367,7 @@ __create_dynamic_subscription(
   /////
   // Create DataReader
 
-  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
   // datareader which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -379,7 +379,7 @@ __create_dynamic_subscription(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }
@@ -549,7 +549,7 @@ __create_subscription(
   /////
   // Create the Type Support struct
   if (!fastdds_type) {
-    auto tsupport = new (std::nothrow) MessageTypeSupport_cpp(callbacks, type_supports);
+    auto tsupport = new (std::nothrow) MessageTypeSupport_cpp(callbacks);
     if (!tsupport) {
       RMW_SET_ERROR_MSG("create_subscription() failed to allocate MessageTypeSupport");
       return nullptr;
@@ -559,18 +559,23 @@ __create_subscription(
     fastdds_type.reset(tsupport);
   }
 
-  if (keyed && !fastdds_type->is_compute_key_provided) {
+  if (keyed && !fastdds_type->m_isGetKeyDefined) {
     RMW_SET_ERROR_MSG("create_subscription() requested a keyed topic with a non-keyed type");
     return nullptr;
   }
 
-  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_subscription() failed to register type");
     return nullptr;
   }
   info->type_support_ = fastdds_type;
 
-  info->type_support_->register_type_object_representation();
+  if (!rmw_fastrtps_shared_cpp::register_type_object(type_supports, type_name)) {
+    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
+      "failed to register type object with incompatible type %s",
+      type_name.c_str());
+    return nullptr;
+  }
 
   /////
   // Create Listener
@@ -591,7 +596,7 @@ __create_subscription(
   // Create and register Topic
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(*qos_policies, topic_qos)) {
-    // get_topic_qos already set the error
+    RMW_SET_ERROR_MSG("create_publisher() failed setting topic QoS");
     return nullptr;
   }
 
@@ -629,7 +634,7 @@ __create_subscription(
   /////
   // Create DataReader
 
-  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
   // datareader which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -641,7 +646,7 @@ __create_subscription(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }

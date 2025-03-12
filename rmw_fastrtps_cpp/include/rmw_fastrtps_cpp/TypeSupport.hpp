@@ -42,7 +42,7 @@ public:
   bool deserializeROSmessage(
     eprosima::fastcdr::Cdr & deser, void * ros_message, const void * impl) const override;
 
-  explicit TypeSupport(const rosidl_message_type_support_t * type_supports);
+  TypeSupport();
 
 protected:
   void set_members(const message_type_support_callbacks_t * members);

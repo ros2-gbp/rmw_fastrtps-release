@@ -38,8 +38,10 @@ find_package(rmw_dds_common REQUIRED)
 find_package(rmw_fastrtps_shared_cpp REQUIRED)
 find_package(tracetools REQUIRED)
 
-find_package(fastcdr 2 REQUIRED)
-find_package(fastdds 3 REQUIRED)
+find_package(fastrtps_cmake_module REQUIRED)
+find_package(fastcdr 2 REQUIRED CONFIG)
+find_package(fastrtps 2.13 REQUIRED CONFIG)
+find_package(FastRTPS 2.13 REQUIRED MODULE)
 
 find_package(rmw REQUIRED)
 find_package(rosidl_dynamic_typesupport REQUIRED)
@@ -47,6 +49,8 @@ find_package(rosidl_dynamic_typesupport_fastrtps REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
+
+include_directories(include)
 
 add_library(rmw_fastrtps_cpp
   src/get_client.cpp
@@ -96,7 +100,7 @@ add_library(rmw_fastrtps_cpp
 )
 target_link_libraries(rmw_fastrtps_cpp PUBLIC
   fastcdr
-  fastdds
+  fastrtps
   rmw::rmw
   rmw_fastrtps_shared_cpp::rmw_fastrtps_shared_cpp
   rosidl_runtime_c::rosidl_runtime_c
@@ -111,9 +115,6 @@ target_link_libraries(rmw_fastrtps_cpp PRIVATE
   rosidl_typesupport_fastrtps_c::rosidl_typesupport_fastrtps_c
   tracetools::tracetools
 )
-target_include_directories(rmw_fastrtps_cpp PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 
 configure_rmw_library(rmw_fastrtps_cpp)
 
@@ -125,8 +126,6 @@ target_compile_definitions(${PROJECT_NAME}
 # Export old-style CMake variables
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(rmw_fastrtps_cpp)
-# Export a modern CMake target
-ament_export_targets(rmw_fastrtps_cpp)
 
 ament_export_dependencies(fastcdr rmw rmw_fastrtps_shared_cpp rosidl_runtime_c rosidl_typesupport_fastrtps_cpp)
 
@@ -154,7 +153,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_logging test/test_logging.cpp)
   target_link_libraries(test_logging
-    fastdds
+    fastrtps
     rmw::rmw
     rmw_fastrtps_cpp
   )
@@ -170,7 +169,7 @@ install(
 )
 
 install(
-  TARGETS rmw_fastrtps_cpp EXPORT rmw_fastrtps_cpp
+  TARGETS rmw_fastrtps_cpp
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

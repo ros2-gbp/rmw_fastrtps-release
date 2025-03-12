@@ -26,7 +26,7 @@
 #include "fastdds/dds/topic/TypeSupport.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/attributes/ResourceManagement.hpp"
+#include "fastdds/rtps/resources/ResourceManagement.h"
 
 #include "rcpputils/scope_exit.hpp"
 #include "rcutils/error_handling.h"
@@ -42,7 +42,6 @@
 
 #include "rmw_fastrtps_shared_cpp/custom_client_info.hpp"
 #include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
-#include "rmw_fastrtps_shared_cpp/guid_utils.hpp"
 #include "rmw_fastrtps_shared_cpp/names.hpp"
 #include "rmw_fastrtps_shared_cpp/namespace_prefix.hpp"
 #include "rmw_fastrtps_shared_cpp/qos.hpp"
@@ -51,8 +50,6 @@
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
 #include "rmw_fastrtps_cpp/identifier.hpp"
-
-#include "tracetools/tracetools.h"
 
 #include "./type_support_common.hpp"
 
@@ -216,8 +213,7 @@ rmw_create_client(
   info->response_type_support_impl_ = response_members;
 
   if (!request_fastdds_type) {
-    auto tsupport = new (std::nothrow) RequestTypeSupport_cpp(service_members,
-        type_supports->request_typesupport);
+    auto tsupport = new (std::nothrow) RequestTypeSupport_cpp(service_members);
     if (!tsupport) {
       RMW_SET_ERROR_MSG("create_client() failed to allocate request typesupport");
       return nullptr;
@@ -226,8 +222,7 @@ rmw_create_client(
     request_fastdds_type.reset(tsupport);
   }
   if (!response_fastdds_type) {
-    auto tsupport = new (std::nothrow) ResponseTypeSupport_cpp(service_members,
-        type_supports->response_typesupport);
+    auto tsupport = new (std::nothrow) ResponseTypeSupport_cpp(service_members);
     if (!tsupport) {
       RMW_SET_ERROR_MSG("create_client() failed to allocate response typesupport");
       return nullptr;
@@ -236,13 +231,13 @@ rmw_create_client(
     response_fastdds_type.reset(tsupport);
   }
 
-  if (eprosima::fastdds::dds::RETCODE_OK != request_fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != request_fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_client() failed to register request type");
     return nullptr;
   }
   info->request_type_support_ = request_fastdds_type;
 
-  if (eprosima::fastdds::dds::RETCODE_OK != response_fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != response_fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_client() failed to register response type");
     return nullptr;
   }
@@ -267,7 +262,7 @@ rmw_create_client(
   // Same default topic QoS for both topics
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(adapted_qos_policies, topic_qos)) {
-    // get_topic_qos already set the error
+    RMW_SET_ERROR_MSG("create_client() failed setting topic QoS");
     return nullptr;
   }
 
@@ -298,7 +293,7 @@ rmw_create_client(
   /////
   // Create response DataReader
 
-  // If FASTDDS_DEFAULT_PROFILES_FILE defined, fill DataReader QoS with a subscriber profile
+  // If FASTRTPS_DEFAULT_PROFILES_FILE defined, fill DataReader QoS with a subscriber profile
   // located based on topic name defined by _create_topic_name(). If no profile is found, a search
   // with profile_name "client" is attempted. Else, use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -314,7 +309,7 @@ rmw_create_client(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }
@@ -349,7 +344,7 @@ rmw_create_client(
       subscriber->delete_datareader(info->response_reader_);
     });
 
-  // If FASTDDS_DEFAULT_PROFILES_FILE defined, fill DataWriter QoS with a publisher profile
+  // If FASTRTPS_DEFAULT_PROFILES_FILE defined, fill DataWriter QoS with a publisher profile
   // located based on topic name defined by _create_topic_name(). If no profile is found, a search
   // with profile_name "client" is attempted. Else, use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataWriterQos writer_qos = publisher->get_default_datawriter_qos();
@@ -366,13 +361,13 @@ rmw_create_client(
   // Modify specific DataWriter Qos
   if (!participant_info->leave_middleware_default_qos) {
     if (participant_info->publishing_mode == publishing_mode_t::ASYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastrtps::ASYNCHRONOUS_PUBLISH_MODE;
     } else if (participant_info->publishing_mode == publishing_mode_t::SYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastrtps::SYNCHRONOUS_PUBLISH_MODE;
     }
 
     writer_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     writer_qos.data_sharing().off();
   }
@@ -463,11 +458,6 @@ rmw_create_client(
   cleanup_datawriter.cancel();
   cleanup_datareader.cancel();
   cleanup_info.cancel();
-  if (TRACETOOLS_TRACEPOINT_ENABLED(rmw_client_init)) {
-    rmw_gid_t gid{};
-    rmw_fastrtps_shared_cpp::copy_from_fastdds_guid_to_byte_array(info->reader_guid_, gid.data);
-    TRACETOOLS_DO_TRACEPOINT(rmw_client_init, static_cast<const void *>(rmw_client), gid.data);
-  }
   return rmw_client;
 }
 

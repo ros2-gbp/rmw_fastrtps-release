@@ -2,46 +2,12 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.3.1 (2025-03-11)
+8.4.2 (2025-03-12)
 ------------------
-* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_)
-* use rmw_enclave_options_xxx APIs instead. (`#808 <https://github.com/ros2/rmw_fastrtps/issues/808>`_)
-* Contributors: Alejandro Hernández Cordero, Tomoya Fujita
+* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_) (`#813 <https://github.com/ros2/rmw_fastrtps/issues/813>`_)
+* Contributors: mergify[bot]
 
-9.3.0 (2025-03-04)
-------------------
-* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
-* Contributors: Carlos Espinoza Curto
-
-9.2.1 (2025-02-17)
-------------------
-* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
-* Fix some overwritten errors in rmw_fastrtps. (`#799 <https://github.com/ros2/rmw_fastrtps/issues/799>`_)
-* Contributors: Chris Lalancette, Miguel Company
-
-9.2.0 (2024-12-20)
-------------------
-* Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
-* Contributors: Christophe Bedard
-
-9.1.0 (2024-11-25)
-------------------
-
-9.0.3 (2024-11-20)
-------------------
-
-9.0.2 (2024-10-03)
-------------------
-
-9.0.1 (2024-07-29)
-------------------
-* Add tracing instrumentation to rmw_fastrtps_dynamic_cpp (`#772 <https://github.com/ros2/rmw_fastrtps/issues/772>`_)
-* Contributors: Christophe Bedard
-
-9.0.0 (2024-06-17)
-------------------
-
-8.5.0 (2024-04-26)
+8.4.1 (2024-06-27)
 ------------------
 
 8.4.0 (2024-04-09)
