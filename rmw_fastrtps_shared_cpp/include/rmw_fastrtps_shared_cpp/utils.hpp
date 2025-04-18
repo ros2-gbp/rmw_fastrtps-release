@@ -21,7 +21,7 @@
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/TypeSupport.hpp"
 
-#include "fastrtps/types/TypesBase.h"
+#include "fastdds/dds/core/ReturnCode.hpp"
 
 #include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
 #include "rmw_fastrtps_shared_cpp/custom_subscriber_info.hpp"
@@ -40,7 +40,7 @@ namespace rmw_fastrtps_shared_cpp
 */
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 rmw_ret_t
-cast_error_dds_to_rmw(eprosima::fastrtps::types::ReturnCode_t code);
+cast_error_dds_to_rmw(eprosima::fastdds::dds::ReturnCode_t code);
 
 /**
 * Tries to find already registered topic and type.
@@ -125,6 +125,21 @@ create_datareader(
   eprosima::fastdds::dds::TopicDescription * des_topic,
   CustomDataReaderListener * listener,
   eprosima::fastdds::dds::DataReader ** data_reader);
+
+/**
+* Apply specific resource limits when using keys.
+* Max samples per instance is set to history depth if KEEP_LAST
+* else UNLIMITED.
+*
+* \param[in]       history_qos      History entitiy QoS.
+* \param[in, out]  res_limits_qos   Resource limits entitiy QoS.
+*
+*/
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+void
+apply_qos_resource_limits_for_keys(
+  const eprosima::fastdds::dds::HistoryQosPolicy & history_qos,
+  eprosima::fastdds::dds::ResourceLimitsQosPolicy & res_limits_qos);
 
 }  // namespace rmw_fastrtps_shared_cpp
 

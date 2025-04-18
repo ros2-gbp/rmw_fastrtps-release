@@ -2,12 +2,52 @@
 Changelog for package rmw_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-8.4.2 (2025-03-12)
+9.3.2 (2025-04-18)
 ------------------
-* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_) (`#813 <https://github.com/ros2/rmw_fastrtps/issues/813>`_)
-* Contributors: mergify[bot]
+* Address RHEL warnings and missing includes. (`#819 <https://github.com/ros2/rmw_fastrtps/issues/819>`_)
+* Support topic instances (`#753 <https://github.com/ros2/rmw_fastrtps/issues/753>`_)
+* Switch to ament_cmake_ros_core package (`#818 <https://github.com/ros2/rmw_fastrtps/issues/818>`_)
+* Contributors: Miguel Company, Scott K Logan, Tomoya Fujita
 
-8.4.1 (2024-06-27)
+9.3.1 (2025-03-11)
+------------------
+* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_)
+* use rmw_enclave_options_xxx APIs instead. (`#808 <https://github.com/ros2/rmw_fastrtps/issues/808>`_)
+* Contributors: Alejandro Hernández Cordero, Tomoya Fujita
+
+9.3.0 (2025-03-04)
+------------------
+* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
+* Contributors: Carlos Espinoza Curto
+
+9.2.1 (2025-02-17)
+------------------
+* Export a modern CMake target (`#805 <https://github.com/ros2/rmw_fastrtps/issues/805>`_)
+* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
+* Fix some overwritten errors in rmw_fastrtps. (`#799 <https://github.com/ros2/rmw_fastrtps/issues/799>`_)
+* Contributors: Chris Lalancette, Miguel Company, Shane Loretz
+
+9.2.0 (2024-12-20)
+------------------
+* Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
+* Contributors: Christophe Bedard
+
+9.1.0 (2024-11-25)
+------------------
+
+9.0.3 (2024-11-20)
+------------------
+
+9.0.2 (2024-10-03)
+------------------
+
+9.0.1 (2024-07-29)
+------------------
+
+9.0.0 (2024-06-17)
+------------------
+
+8.5.0 (2024-04-26)
 ------------------
 
 8.4.0 (2024-04-09)

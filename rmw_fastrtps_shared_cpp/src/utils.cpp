@@ -18,36 +18,33 @@
 
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
+#include "fastdds/dds/core/ReturnCode.hpp"
 #include "fastdds/dds/topic/Topic.hpp"
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/TypeSupport.hpp"
 
-#include "fastrtps/types/TypesBase.h"
-
 #include "rmw/rmw.h"
-
-using ReturnCode_t = eprosima::fastrtps::types::ReturnCode_t;
 
 const char * const CONTENT_FILTERED_TOPIC_POSTFIX = "_filtered_name";
 
 namespace rmw_fastrtps_shared_cpp
 {
 
-rmw_ret_t cast_error_dds_to_rmw(ReturnCode_t code)
+rmw_ret_t cast_error_dds_to_rmw(eprosima::fastdds::dds::ReturnCode_t code)
 {
   // not switch because it is not an enum class
-  if (ReturnCode_t::RETCODE_OK == code) {
+  if (eprosima::fastdds::dds::RETCODE_OK == code) {
     return RMW_RET_OK;
-  } else if (ReturnCode_t::RETCODE_ERROR == code) {
+  } else if (eprosima::fastdds::dds::RETCODE_ERROR == code) {
     // repeats the error to avoid too many 'if' comparisons
     return RMW_RET_ERROR;
-  } else if (ReturnCode_t::RETCODE_TIMEOUT == code) {
+  } else if (eprosima::fastdds::dds::RETCODE_TIMEOUT == code) {
     return RMW_RET_TIMEOUT;
-  } else if (ReturnCode_t::RETCODE_UNSUPPORTED == code) {
+  } else if (eprosima::fastdds::dds::RETCODE_UNSUPPORTED == code) {
     return RMW_RET_UNSUPPORTED;
-  } else if (ReturnCode_t::RETCODE_BAD_PARAMETER == code) {
+  } else if (eprosima::fastdds::dds::RETCODE_BAD_PARAMETER == code) {
     return RMW_RET_INVALID_ARGUMENT;
-  } else if (ReturnCode_t::RETCODE_OUT_OF_RESOURCES == code) {
+  } else if (eprosima::fastdds::dds::RETCODE_OUT_OF_RESOURCES == code) {
     // Could be that out of resources comes from a different source than a bad allocation
     return RMW_RET_BAD_ALLOC;
   } else {
@@ -149,7 +146,7 @@ create_datareader(
     case RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_OPTIONALLY_REQUIRED:
     case RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_STRICTLY_REQUIRED:
       // Ensure we request unique network flow endpoints
-      using PropertyPolicyHelper = eprosima::fastrtps::rtps::PropertyPolicyHelper;
+      using PropertyPolicyHelper = eprosima::fastdds::rtps::PropertyPolicyHelper;
       if (nullptr ==
         PropertyPolicyHelper::find_property(
           updated_qos.properties(),
@@ -184,5 +181,18 @@ create_datareader(
   return true;
 }
 
+void
+apply_qos_resource_limits_for_keys(
+  const eprosima::fastdds::dds::HistoryQosPolicy & history_qos,
+  eprosima::fastdds::dds::ResourceLimitsQosPolicy & res_limits_qos)
+{
+  res_limits_qos.max_instances = 0;
+  res_limits_qos.max_samples = 0;
+  if (history_qos.kind == eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS) {
+    res_limits_qos.max_samples_per_instance = history_qos.depth;
+  } else {
+    res_limits_qos.max_samples_per_instance = 0;
+  }
+}
 
 }  // namespace rmw_fastrtps_shared_cpp

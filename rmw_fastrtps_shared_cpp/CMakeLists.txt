@@ -34,21 +34,20 @@ if(SECURITY)
   find_package(OpenSSL REQUIRED)
 endif()
 
-find_package(ament_cmake_ros REQUIRED)
+find_package(ament_cmake_ros_core REQUIRED)
 find_package(rosidl_dynamic_typesupport REQUIRED)
 
 find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rmw_dds_common REQUIRED)
+find_package(rmw_security_common REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_introspection_c REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 find_package(tracetools REQUIRED)
 
-find_package(fastrtps_cmake_module REQUIRED)
-find_package(fastcdr 2 REQUIRED CONFIG)
-find_package(fastrtps 2.13 REQUIRED CONFIG)
-find_package(FastRTPS 2.13 REQUIRED MODULE)
+find_package(fastcdr 2 REQUIRED)
+find_package(fastdds 3 REQUIRED)
 
 find_package(rmw REQUIRED)
 
@@ -105,11 +104,12 @@ target_include_directories(rmw_fastrtps_shared_cpp
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(rmw_fastrtps_shared_cpp PUBLIC
   fastcdr
-  fastrtps
+  fastdds
   rcpputils::rcpputils
   rcutils::rcutils
   rmw::rmw
   rmw_dds_common::rmw_dds_common_library
+  rmw_security_common::rmw_security_common_library
   rosidl_dynamic_typesupport::rosidl_dynamic_typesupport
 )
 
@@ -131,7 +131,7 @@ ament_export_libraries(rmw_fastrtps_shared_cpp)
 # Export modern CMake targets
 ament_export_targets(rmw_fastrtps_shared_cpp)
 
-ament_export_dependencies(fastcdr rcpputils rcutils rmw rmw_dds_common rosidl_dynamic_typesupport)
+ament_export_dependencies(fastcdr rcpputils rcutils rmw rmw_dds_common rmw_security_common rosidl_dynamic_typesupport)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

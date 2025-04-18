@@ -30,24 +30,21 @@ if(SECURITY)
   find_package(OpenSSL REQUIRED)
 endif()
 
-find_package(ament_cmake_ros REQUIRED)
+find_package(ament_cmake_ros_core REQUIRED)
 
 find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rmw_dds_common REQUIRED)
 find_package(rmw_fastrtps_shared_cpp REQUIRED)
+find_package(tracetools REQUIRED)
 
-find_package(fastrtps_cmake_module REQUIRED)
-find_package(fastcdr 2 REQUIRED CONFIG)
-find_package(fastrtps 2.13 REQUIRED CONFIG)
-find_package(FastRTPS 2.13 REQUIRED MODULE)
+find_package(fastcdr 2 REQUIRED)
+find_package(fastdds 3 REQUIRED)
 
 find_package(rmw REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_introspection_c REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
-
-include_directories(include)
 
 add_library(rmw_fastrtps_dynamic_cpp
   src/client_service_common.cpp
@@ -100,7 +97,7 @@ add_library(rmw_fastrtps_dynamic_cpp
 )
 target_link_libraries(rmw_fastrtps_dynamic_cpp PUBLIC
   fastcdr
-  fastrtps
+  fastdds
   rcpputils::rcpputils
   rcutils::rcutils
   rmw::rmw
@@ -111,7 +108,11 @@ target_link_libraries(rmw_fastrtps_dynamic_cpp PUBLIC
 )
 target_link_libraries(rmw_fastrtps_dynamic_cpp PRIVATE
   rmw_dds_common::rmw_dds_common_library
+  tracetools::tracetools
 )
+target_include_directories(rmw_fastrtps_dynamic_cpp PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 
 configure_rmw_library(rmw_fastrtps_dynamic_cpp)
 
@@ -123,6 +124,8 @@ target_compile_definitions(${PROJECT_NAME}
 # Export old-style CMake variables
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(rmw_fastrtps_dynamic_cpp)
+# Export a modern CMake target
+ament_export_targets(rmw_fastrtps_dynamic_cpp)
 
 ament_export_dependencies(
   fastcdr
@@ -159,7 +162,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_logging test/test_logging.cpp)
   target_link_libraries(test_logging
-    fastrtps
+    fastdds
     rmw::rmw
     rmw_fastrtps_dynamic_cpp
   )
@@ -175,7 +178,7 @@ install(
 )
 
 install(
-  TARGETS rmw_fastrtps_dynamic_cpp
+  TARGETS rmw_fastrtps_dynamic_cpp EXPORT rmw_fastrtps_dynamic_cpp
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
