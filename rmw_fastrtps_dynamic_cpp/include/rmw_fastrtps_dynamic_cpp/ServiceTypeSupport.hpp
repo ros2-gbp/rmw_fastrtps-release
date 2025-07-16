@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SERVICETYPESUPPORT_HPP_
-#define SERVICETYPESUPPORT_HPP_
+#ifndef RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_HPP_
+#define RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_HPP_
 
 #include <cassert>
 
@@ -30,24 +30,18 @@ template<typename ServiceMembersType, typename MessageMembersType>
 class RequestTypeSupport : public TypeSupport<MessageMembersType>
 {
 public:
-  RequestTypeSupport(
-    const ServiceMembersType * members,
-    const void * ros_type_support,
-    const void * message_type_supports);
+  RequestTypeSupport(const ServiceMembersType * members, const void * ros_type_support);
 };
 
 template<typename ServiceMembersType, typename MessageMembersType>
 class ResponseTypeSupport : public TypeSupport<MessageMembersType>
 {
 public:
-  ResponseTypeSupport(
-    const ServiceMembersType * members,
-    const void * ros_type_support,
-    const void * message_type_supports);
+  ResponseTypeSupport(const ServiceMembersType * members, const void * ros_type_support);
 };
 
 }  // namespace rmw_fastrtps_dynamic_cpp
 
 #include "ServiceTypeSupport_impl.hpp"
 
-#endif  // SERVICETYPESUPPORT_HPP_
+#endif  // RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_HPP_

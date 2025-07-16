@@ -3,7 +3,6 @@
 `rmw_fastrtps` is a [ROS 2](https://docs.ros.org/en/rolling) middleware implementation, providing an interface between ROS 2 and [eProsima's](https://www.eprosima.com/index.php) [Fast DDS](https://github.com/eProsima/Fast-DDS) middleware.
 
 ## Getting started
-
 This implementation is available in all ROS 2 distributions, both from binaries and from sources.
 You can specify Fast DDS as your ROS 2 middleware layer in two different ways:
 
@@ -28,8 +27,9 @@ You can however set it to `rmw_fastrtps_dynamic_cpp` using the environment varia
 
 ## Advance usage
 
+[//]: # (TODO sloretz - link ROS 2 discovery documentation when it's created)
 ROS 2 only allows for the configuration of certain middleware features.
-For example, see [ROS 2 QoS policies](https://docs.ros.org/en/rolling/Concepts/About-Quality-of-Service-Settings.html#qos-policies).
+For example, see [ROS 2 QoS policies](https://docs.ros.org/en/foxy/Concepts/About-Quality-of-Service-Settings.html#qos-policies).
 In addition to ROS 2 QoS policies, `rmw_fastrtps` sets the following Fast DDS configurable parameters:
 
 * History memory policy: `PREALLOCATED_WITH_REALLOC_MEMORY_MODE`
@@ -40,9 +40,7 @@ However, `rmw_fastrtps` offers the possibility to further configure Fast DDS:
 
 * [Change publication mode](#change-publication-mode)
 * [Full QoS configuration](#full-qos-configuration)
-* [Change participant discovery options](#change-participant-discovery-options)
 * [Enable Zero Copy Data Sharing](#enable-zero-copy-data-sharing)
-* [Large data transfer over lossy network](#large-data-transfer-over-lossy-network)
 
 ### Change publication mode
 
@@ -98,8 +96,8 @@ Furthermore, If `RMW_FASTRTPS_USE_QOS_FROM_XML` is set to 1, and [history memory
 
 There are two ways of telling a ROS 2 application which XML to use:
 
-1. Placing your XML file in the running directory under the name `DEFAULT_FASTDDS_PROFILES.xml`.
-1. Setting environment variable `FASTDDS_DEFAULT_PROFILES_FILE` to contain the path to your XML file (relative to the working directory).
+1. Placing your XML file in the running directory under the name `DEFAULT_FASTRTPS_PROFILES.xml`.
+1. Setting environment variable `FASTRTPS_DEFAULT_PROFILES_FILE` to contain the path to your XML file (relative to the working directory).
 
 To verify the actual QoS settings using rmw:
 
@@ -253,21 +251,14 @@ The following example configures Fast DDS to publish synchronously, to have a pr
     1. In one terminal
 
         ```bash
-        FASTDDS_DEFAULT_PROFILES_FILE=<path_to_xml_file> RMW_FASTRTPS_USE_QOS_FROM_XML=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 run demo_nodes_cpp talker
+        FASTRTPS_DEFAULT_PROFILES_FILE=<path_to_xml_file> RMW_FASTRTPS_USE_QOS_FROM_XML=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 run demo_nodes_cpp talker
         ```
 
     1. In another terminal
 
         ```bash
-        FASTDDS_DEFAULT_PROFILES_FILE=<path_to_xml_file> RMW_FASTRTPS_USE_QOS_FROM_XML=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 run demo_nodes_cpp listener
+        FASTRTPS_DEFAULT_PROFILES_FILE=<path_to_xml_file> RMW_FASTRTPS_USE_QOS_FROM_XML=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 run demo_nodes_cpp listener
         ```
-
-### Change participant discovery options
-
-ROS 2 allows controlling participant discovery with two environment variables: `ROS_AUTOMATIC_DISCOVERY_RANGE` and `ROS_STATIC_PEERS`.
-Full configuration of participant discovery can also be set with XML files; however, the ROS specific environment variables should be disabled to prevent them from interfering.
-Set `ROS_AUTOMATIC_DISCOVERY_RANGE` to the value `SYSTEM_DEFAULT` to disable both ROS specific environment variables.
-See more details for [Improved Dynamic Discovery](https://docs.ros.org/en/rolling/Tutorials/Advanced/Improved-Dynamic-Discovery.html).
 
 ### Enable Zero Copy Data Sharing
 
@@ -306,26 +297,6 @@ In order to achieve a Zero Copy message delivery, applications need to both enab
     </subscriber>
     </profiles>
     ```
-
-### Large data transfer over lossy network
-
-Out of the box, Fast DDS uses UDPv4 for the data communication over the network.
-Although UDP has its own merit for realtime communications, with many applications relying on UDP, depending on application requirements, a more reliable network transmission may be needed.
-Such cases included but are not limited to sending large data samples over lossy networks, where TCP's builtin reliability and flow control tend to perform better.
-
-Because of this reason, Fast DDS provides the possibility to modify its builtin transports via an environmental variable `FASTDDS_BUILTIN_TRANSPORTS`, allowing for easily changing the transport layer to TCP when needed:
-
-```bash
-export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
-```
-
-This `LARGE_DATA` mode adds a TCP transport for data communication, restricting the use of the UDP transport to the first part of the discovery process, thus achieving a reliable transmission with automatic discovery capabilities.
-This will improve the transmission of large data samples over lossy networks.
-
-> [!NOTE]
-> The environmental variable needs to be set on both publisher and subscription side.
-
-For more information, please refer to [FASTDDS_BUILTIN_TRANSPORTS](https://fast-dds.docs.eprosima.com/en/latest/fastdds/env_vars/env_vars.html#fastdds-builtin-transports).
 
 ## Quality Declaration files
 

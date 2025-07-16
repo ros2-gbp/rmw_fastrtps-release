@@ -23,7 +23,7 @@
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/attributes/ResourceManagement.hpp"
+#include "fastdds/rtps/resources/ResourceManagement.h"
 
 #include "rcutils/error_handling.h"
 
@@ -31,8 +31,6 @@
 #include "rmw/error_handling.h"
 #include "rmw/rmw.h"
 #include "rmw/validate_full_topic_name.h"
-
-#include "rosidl_runtime_c/type_hash.h"
 
 #include "rcpputils/scope_exit.hpp"
 
@@ -45,22 +43,24 @@
 #include "rmw_fastrtps_shared_cpp/subscription.hpp"
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
+#include "fastrtps/participant/Participant.h"
+#include "fastrtps/subscriber/Subscriber.h"
+#include "fastrtps/xmlparser/XMLProfileManager.h"
+
 #include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
+#include "rmw_fastrtps_dynamic_cpp/subscription.hpp"
 
-#include "tracetools/tracetools.h"
-
-#include "subscription.hpp"
 #include "type_support_common.hpp"
 #include "type_support_registry.hpp"
 
-using PropertyPolicyHelper = eprosima::fastdds::rtps::PropertyPolicyHelper;
+using PropertyPolicyHelper = eprosima::fastrtps::rtps::PropertyPolicyHelper;
 
 namespace rmw_fastrtps_dynamic_cpp
 {
 
 rmw_subscription_t *
 create_subscription(
-  CustomParticipantInfo * participant_info,
+  const CustomParticipantInfo * participant_info,
   const rosidl_message_type_support_t * type_supports,
   const char * topic_name,
   const rmw_qos_profile_t * qos_policies,
@@ -163,12 +163,12 @@ create_subscription(
   }
 
   auto cleanup_info = rcpputils::make_scope_exit(
-    [info, participant_info]()
+    [info, dds_participant]()
     {
-      rmw_fastrtps_shared_cpp::remove_topic_and_type(
-        participant_info, info->subscription_event_, info->topic_, info->type_support_);
-      delete info->subscription_event_;
-      delete info->data_reader_listener_;
+      delete info->listener_;
+      if (info->type_support_) {
+        dds_participant->unregister_type(info->type_support_.get_type_name());
+      }
       delete info;
     });
 
@@ -200,12 +200,12 @@ create_subscription(
     fastdds_type.reset(tsupport);
   }
 
-  if (keyed && !fastdds_type->is_compute_key_provided) {
+  if (keyed && !fastdds_type->m_isGetKeyDefined) {
     RMW_SET_ERROR_MSG("create_subscription() requested a keyed topic with a non-keyed type");
     return nullptr;
   }
 
-  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_subscription() failed to register type");
     return nullptr;
   }
@@ -214,16 +214,10 @@ create_subscription(
 
   /////
   // Create Listener
-  info->subscription_event_ = new (std::nothrow) RMWSubscriptionEvent(info);
-  if (!info->subscription_event_) {
-    RMW_SET_ERROR_MSG("create_subscription() could not create subscription event");
-    return nullptr;
-  }
+  info->listener_ = new (std::nothrow) SubListener(info);
 
-  info->data_reader_listener_ =
-    new (std::nothrow) CustomDataReaderListener(info->subscription_event_);
-  if (!info->data_reader_listener_) {
-    RMW_SET_ERROR_MSG("create_subscription() could not create subscription data reader listener");
+  if (!info->listener_) {
+    RMW_SET_ERROR_MSG("create_subscription() could not create subscription listener");
     return nullptr;
   }
 
@@ -231,23 +225,25 @@ create_subscription(
   // Create and register Topic
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(*qos_policies, topic_qos)) {
-    // get_topic_qos already set the error
+    RMW_SET_ERROR_MSG("create_publisher() failed setting topic QoS");
     return nullptr;
   }
 
-  info->topic_ = participant_info->find_or_create_topic(
-    topic_name_mangled, type_name, topic_qos, info->subscription_event_);
-  if (!info->topic_) {
+  rmw_fastrtps_shared_cpp::TopicHolder topic;
+  if (!rmw_fastrtps_shared_cpp::cast_or_create_topic(
+      dds_participant, des_topic,
+      topic_name_mangled, type_name, topic_qos, false, &topic))
+  {
     RMW_SET_ERROR_MSG("create_subscription() failed to create topic");
     return nullptr;
   }
 
-  des_topic = info->topic_;
+  des_topic = topic.desc;
 
   /////
   // Create DataReader
 
-  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
   // datareader which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -259,26 +255,20 @@ create_subscription(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }
 
-  if (!get_datareader_qos(
-      *qos_policies, *type_supports->get_type_hash_func(type_supports),
-      reader_qos))
-  {
+  if (!get_datareader_qos(*qos_policies, reader_qos)) {
     RMW_SET_ERROR_MSG("create_subscription() failed setting data reader QoS");
     return nullptr;
   }
 
-  // Apply resource limits QoS if the type is keyed
-  if (fastdds_type->is_compute_key_provided &&
-    !participant_info->leave_middleware_default_qos)
-  {
-    rmw_fastrtps_shared_cpp::apply_qos_resource_limits_for_keys(
-      reader_qos.history(),
-      reader_qos.resource_limits());
+  info->listener_ = new (std::nothrow) SubListener(info);
+  if (!info->listener_) {
+    RMW_SET_ERROR_MSG("create_subscriber() could not create subscriber listener");
+    return nullptr;
   }
 
   eprosima::fastdds::dds::DataReaderQos original_qos = reader_qos;
@@ -306,7 +296,7 @@ create_subscription(
   info->data_reader_ = subscriber->create_datareader(
     des_topic,
     reader_qos,
-    info->data_reader_listener_,
+    info->listener_,
     eprosima::fastdds::dds::StatusMask::subscription_matched());
   if (!info->data_reader_ &&
     (RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_OPTIONALLY_REQUIRED ==
@@ -315,7 +305,7 @@ create_subscription(
     info->data_reader_ = subscriber->create_datareader(
       des_topic,
       original_qos,
-      info->data_reader_listener_,
+      info->listener_,
       eprosima::fastdds::dds::StatusMask::subscription_matched());
   }
 
@@ -368,15 +358,11 @@ create_subscription(
   // TODO(iuhilnehc-ynos): update after rmw_fastrtps_cpp is confirmed
   rmw_subscription->is_cft_enabled = false;
 
+  topic.should_be_deleted = false;
   cleanup_rmw_subscription.cancel();
   cleanup_datareader.cancel();
   return_type_support.cancel();
   cleanup_info.cancel();
-
-  TRACETOOLS_TRACEPOINT(
-    rmw_subscription_init,
-    static_cast<const void *>(rmw_subscription),
-    info->subscription_gid_.data);
   return rmw_subscription;
 }
 

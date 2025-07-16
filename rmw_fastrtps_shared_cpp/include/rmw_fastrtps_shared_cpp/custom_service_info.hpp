@@ -32,9 +32,9 @@
 #include "fastdds/dds/subscriber/qos/DataReaderQos.hpp"
 #include "fastdds/dds/topic/TypeSupport.hpp"
 
-#include "fastdds/rtps/common/Guid.hpp"
-#include "fastdds/rtps/common/InstanceHandle.hpp"
-#include "fastdds/rtps/common/SampleIdentity.hpp"
+#include "fastdds/rtps/common/Guid.h"
+#include "fastdds/rtps/common/InstanceHandle.h"
+#include "fastdds/rtps/common/SampleIdentity.h"
 
 #include "rcpputils/thread_safety_annotations.hpp"
 
@@ -63,9 +63,6 @@ typedef struct CustomServiceInfo
   eprosima::fastdds::dds::DataReader * request_reader_{nullptr};
   eprosima::fastdds::dds::DataWriter * response_writer_{nullptr};
 
-  eprosima::fastdds::dds::Topic * request_topic_{nullptr};
-  eprosima::fastdds::dds::Topic * response_topic_{nullptr};
-
   ServiceListener * listener_{nullptr};
   ServicePubListener * pub_listener_{nullptr};
 
@@ -74,19 +71,24 @@ typedef struct CustomServiceInfo
 
 typedef struct CustomServiceRequest
 {
-  eprosima::fastdds::rtps::SampleIdentity sample_identity_;
-  eprosima::fastcdr::FastBuffer * buffer_{nullptr};
+  eprosima::fastrtps::rtps::SampleIdentity sample_identity_;
+  eprosima::fastcdr::FastBuffer * buffer_;
+
+  CustomServiceRequest()
+  : buffer_(nullptr)
+  {
+  }
 } CustomServiceRequest;
 
 class ServicePubListener : public eprosima::fastdds::dds::DataWriterListener
 {
   using subscriptions_set_t =
-    std::unordered_set<eprosima::fastdds::rtps::GUID_t,
-      rmw_fastrtps_shared_cpp::hash_fastdds_guid>;
+    std::unordered_set<eprosima::fastrtps::rtps::GUID_t,
+      rmw_fastrtps_shared_cpp::hash_fastrtps_guid>;
   using clients_endpoints_map_t =
-    std::unordered_map<eprosima::fastdds::rtps::GUID_t,
-      eprosima::fastdds::rtps::GUID_t,
-      rmw_fastrtps_shared_cpp::hash_fastdds_guid>;
+    std::unordered_map<eprosima::fastrtps::rtps::GUID_t,
+      eprosima::fastrtps::rtps::GUID_t,
+      rmw_fastrtps_shared_cpp::hash_fastrtps_guid>;
 
 public:
   explicit ServicePubListener(
@@ -102,10 +104,10 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (info.current_count_change == 1) {
-      subscriptions_.insert(eprosima::fastdds::rtps::iHandle2GUID(info.last_subscription_handle));
+      subscriptions_.insert(eprosima::fastrtps::rtps::iHandle2GUID(info.last_subscription_handle));
     } else if (info.current_count_change == -1) {
-      eprosima::fastdds::rtps::GUID_t erase_endpoint_guid =
-        eprosima::fastdds::rtps::iHandle2GUID(info.last_subscription_handle);
+      eprosima::fastrtps::rtps::GUID_t erase_endpoint_guid =
+        eprosima::fastrtps::rtps::iHandle2GUID(info.last_subscription_handle);
       subscriptions_.erase(erase_endpoint_guid);
       auto endpoint = clients_endpoints_.find(erase_endpoint_guid);
       if (endpoint != clients_endpoints_.end()) {
@@ -121,7 +123,7 @@ public:
   template<class Rep, class Period>
   bool
   wait_for_subscription(
-    const eprosima::fastdds::rtps::GUID_t & guid,
+    const eprosima::fastrtps::rtps::GUID_t & guid,
     const std::chrono::duration<Rep, Period> & rel_time)
   {
     auto guid_is_present = [this, guid]() RCPPUTILS_TSA_REQUIRES(mutex_)->bool
@@ -136,7 +138,7 @@ public:
   template<class Rep, class Period>
   client_present_t
   check_for_subscription(
-    const eprosima::fastdds::rtps::GUID_t & guid,
+    const eprosima::fastrtps::rtps::GUID_t & guid,
     const std::chrono::duration<Rep, Period> & max_blocking_time)
   {
     {
@@ -155,7 +157,7 @@ public:
   }
 
   void endpoint_erase_if_exists(
-    const eprosima::fastdds::rtps::GUID_t & endpointGuid)
+    const eprosima::fastrtps::rtps::GUID_t & endpointGuid)
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto endpoint = clients_endpoints_.find(endpointGuid);
@@ -166,8 +168,8 @@ public:
   }
 
   void endpoint_add_reader_and_writer(
-    const eprosima::fastdds::rtps::GUID_t & readerGuid,
-    const eprosima::fastdds::rtps::GUID_t & writerGuid)
+    const eprosima::fastrtps::rtps::GUID_t & readerGuid,
+    const eprosima::fastrtps::rtps::GUID_t & writerGuid)
   {
     std::lock_guard<std::mutex> lock(mutex_);
     clients_endpoints_.emplace(readerGuid, writerGuid);
@@ -197,7 +199,7 @@ public:
   {
     if (info.current_count_change == -1) {
       info_->pub_listener_->endpoint_erase_if_exists(
-        eprosima::fastdds::rtps::iHandle2GUID(info.last_publication_handle));
+        eprosima::fastrtps::rtps::iHandle2GUID(info.last_publication_handle));
     }
   }
 
@@ -220,7 +222,7 @@ public:
   }
 
   // Provide handlers to perform an action when a
-  // new event from this listener has occurred
+  // new event from this listener has ocurred
   void
   set_on_new_request_callback(
     const void * user_data,
