@@ -1,4 +1,4 @@
-// Copyright 2016-2018 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+// Copyright 2022 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,41 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "fastdds/rtps/common/Guid.hpp"
-
 #include "rmw/error_handling.h"
 #include "rmw/impl/cpp/macros.hpp"
 #include "rmw/rmw.h"
 #include "rmw/types.h"
 
+#include "rmw_fastrtps_shared_cpp/custom_client_info.hpp"
+#include "rmw_fastrtps_shared_cpp/guid_utils.hpp"
 #include "rmw_fastrtps_shared_cpp/rmw_common.hpp"
 
 namespace rmw_fastrtps_shared_cpp
 {
 rmw_ret_t
-__rmw_compare_gids_equal(
+__rmw_get_gid_for_client(
   const char * identifier,
-  const rmw_gid_t * gid1,
-  const rmw_gid_t * gid2,
-  bool * result)
+  const rmw_client_t * client,
+  rmw_gid_t * gid)
 {
-  RMW_CHECK_ARGUMENT_FOR_NULL(gid1, RMW_RET_INVALID_ARGUMENT);
+  RMW_CHECK_ARGUMENT_FOR_NULL(client, RMW_RET_INVALID_ARGUMENT);
   RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
-    gid1,
-    gid1->implementation_identifier,
+    client,
+    client->implementation_identifier,
     identifier,
     return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
-  RMW_CHECK_ARGUMENT_FOR_NULL(gid2, RMW_RET_INVALID_ARGUMENT);
-  RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
-    gid2,
-    gid2->implementation_identifier,
-    identifier,
-    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
-  RMW_CHECK_ARGUMENT_FOR_NULL(result, RMW_RET_INVALID_ARGUMENT);
+  RMW_CHECK_ARGUMENT_FOR_NULL(gid, RMW_RET_INVALID_ARGUMENT);
 
-  *result =
-    memcmp(gid1->data, gid2->data, sizeof(eprosima::fastdds::rtps::GUID_t)) == 0;
-
+  const auto * info = static_cast<const CustomClientInfo *>(client->data);
+  // Use client's reader guid instead of writer guid for service event,
+  // because service server uses client's reader guid for the event.
+  // Service event message requires gid must be unique during transaction.
+  copy_from_fastdds_guid_to_byte_array(info->reader_guid_, gid->data);
+  gid->implementation_identifier = identifier;
   return RMW_RET_OK;
 }
 }  // namespace rmw_fastrtps_shared_cpp

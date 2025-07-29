@@ -2,38 +2,201 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-6.2.8 (2025-07-16)
-------------------
-* check a local publication to ignore with serialized message. (backport `#823 <https://github.com/ros2/rmw_fastrtps/issues/823>`_) (`#826 <https://github.com/ros2/rmw_fastrtps/issues/826>`_)
-* Contributors: mergify[bot]
-
-6.2.7 (2024-07-26)
-------------------
-* Use unique mangled names when creating Content Filter Topics (`#762 <https://github.com/ros2/rmw_fastrtps/issues/762>`_) (`#768 <https://github.com/ros2/rmw_fastrtps/issues/768>`_)
-* Contributors: mergify[bot]
-
-6.2.6 (2024-01-24)
+9.4.2 (2025-07-29)
 ------------------
 
-6.2.5 (2023-11-13)
+9.4.1 (2025-07-01)
+------------------
+* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
+* Retrieve `HistoryQoS` in discovery when available (`#829 <https://github.com/ros2/rmw_fastrtps/issues/829>`_)
+* check a local publication to ignore with serialized message. (`#823 <https://github.com/ros2/rmw_fastrtps/issues/823>`_)
+* Contributors: Mario Domínguez López, Tomoya Fujita, mosfet80
+
+9.4.0 (2025-04-25)
 ------------------
 
-6.2.4 (2023-09-19)
+9.3.2 (2025-04-18)
 ------------------
-* Delay lock on message callback setters (`#657 <https://github.com/ros2/rmw_fastrtps/issues/657>`_) (`#661 <https://github.com/ros2/rmw_fastrtps/issues/661>`_)
-* Fix incoherent dissociate_writer to dissociate_reader (`#647 <https://github.com/ros2/rmw_fastrtps/issues/647>`_) (`#649 <https://github.com/ros2/rmw_fastrtps/issues/649>`_) (`#651 <https://github.com/ros2/rmw_fastrtps/issues/651>`_)
-* Call callbacks only if unread count > 0 (`#634 <https://github.com/ros2/rmw_fastrtps/issues/634>`_) (`#638 <https://github.com/ros2/rmw_fastrtps/issues/638>`_)
-* Use DataWriter Qos to configure max_blocking_time on rmw_send_response (`#704 <https://github.com/ros2/rmw_fastrtps/issues/704>`_) (`#707 <https://github.com/ros2/rmw_fastrtps/issues/707>`_)
-* update fast-dds version into 2.6.2. (`#702 <https://github.com/ros2/rmw_fastrtps/issues/702>`_)
-* Contributors: Tomoya Fujita, mergify[bot]
+* Address RHEL warnings and missing includes. (`#819 <https://github.com/ros2/rmw_fastrtps/issues/819>`_)
+* Support topic instances (`#753 <https://github.com/ros2/rmw_fastrtps/issues/753>`_)
+* Switch to ament_cmake_ros_core package (`#818 <https://github.com/ros2/rmw_fastrtps/issues/818>`_)
+* Contributors: Miguel Company, Scott K Logan, Tomoya Fujita
 
-6.2.3 (2023-07-18)
+9.3.1 (2025-03-11)
 ------------------
+* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_)
+* use rmw_enclave_options_xxx APIs instead. (`#808 <https://github.com/ros2/rmw_fastrtps/issues/808>`_)
+* Contributors: Alejandro Hernández Cordero, Tomoya Fujita
 
-6.2.2 (2022-11-07)
+9.3.0 (2025-03-04)
 ------------------
-* Use Fast-DDS Waitsets instead of listeners (backport `#619 <https://github.com/ros2/rmw_fastrtps/issues/619>`_) (`#633 <https://github.com/ros2/rmw_fastrtps/issues/633>`_)
+* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
+* Contributors: Carlos Espinoza Curto
+
+9.2.1 (2025-02-17)
+------------------
+* Use rmw_security_common (`#803 <https://github.com/ros2/rmw_fastrtps/issues/803>`_)
+* introduce RMW_EVENT_TYPE_MAX in rmw_event_type_t. (`#785 <https://github.com/ros2/rmw_fastrtps/issues/785>`_)
+* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
+* Cleanup one test in rmw_fastrtps_shared_cpp. (`#794 <https://github.com/ros2/rmw_fastrtps/issues/794>`_)
+* Contributors: Alejandro Hernández Cordero, Chris Lalancette, Miguel Company, Tomoya Fujita
+
+9.2.0 (2024-12-20)
+------------------
+* Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
+* Contributors: Christophe Bedard
+
+9.1.0 (2024-11-25)
+------------------
+* Drop support for float128. (`#788 <https://github.com/ros2/rmw_fastrtps/issues/788>`_)
+* Contributors: Chris Lalancette
+
+9.0.3 (2024-11-20)
+------------------
+* Keep reference to `DomainParticipantFactory` (`#770 <https://github.com/ros2/rmw_fastrtps/issues/770>`_)
 * Contributors: Miguel Company
+
+9.0.2 (2024-10-03)
+------------------
+* Use client's reader guid for service introspection event gid (`#781 <https://github.com/ros2/rmw_fastrtps/issues/781>`_)
+* Revert "Unique Client GID for Service Introspectino Event. (`#779 <https://github.com/ros2/rmw_fastrtps/issues/779>`_)" (`#780 <https://github.com/ros2/rmw_fastrtps/issues/780>`_)
+* Unique Client GID for Service Introspectino Event. (`#779 <https://github.com/ros2/rmw_fastrtps/issues/779>`_)
+* Contributors: Jorge J. Perez, Tomoya Fujita
+
+9.0.1 (2024-07-29)
+------------------
+* remove rmw_localhost_only_t. (`#773 <https://github.com/ros2/rmw_fastrtps/issues/773>`_)
+* Contributors: Tomoya Fujita
+
+9.0.0 (2024-06-17)
+------------------
+* Make rmw_service_server_is_available return RMW_RET_INVALID_ARGUMENT (`#763 <https://github.com/ros2/rmw_fastrtps/issues/763>`_)
+* Use rmw_namespace_validation_result_string() in rmw_create_node (`#765 <https://github.com/ros2/rmw_fastrtps/issues/765>`_)
+* Make rmw_destroy_wait_set return RMW_RET_INVALID_ARGUMENT (`#766 <https://github.com/ros2/rmw_fastrtps/issues/766>`_)
+* Use unique mangled names when creating Content Filter Topics (`#762 <https://github.com/ros2/rmw_fastrtps/issues/762>`_)
+* Add support for data representation (`#756 <https://github.com/ros2/rmw_fastrtps/issues/756>`_)
+* Contributors: Christophe Bedard, Mario Domínguez López, Miguel Company
+
+8.5.0 (2024-04-26)
+------------------
+
+8.4.0 (2024-04-09)
+------------------
+* Allow pkcs11 when calling rmw_dds_common::get_security_files. (`#565 <https://github.com/ros2/rmw_fastrtps/issues/565>`_)
+  Co-authored-by: Miguel Company <MiguelCompany@eprosima.com>
+* Add tracepoint for publish/subscribe serialized_message (`#748 <https://github.com/ros2/rmw_fastrtps/issues/748>`_)
+  * Add: tracepoint for generic pub/sub
+  * Fix: correspond to PR 454
+  * Fix: change write to write_to_timestamp
+  ---------
+* Contributors: IkerLuengo, h-suzuki-isp
+
+8.3.0 (2024-03-28)
+------------------
+* Support Fast CDR v2 (`#746 <https://github.com/ros2/rmw_fastrtps/issues/746>`_)
+  * Require fastcdr version 2
+  * Changes to build rmw_fastrtps_shared_cpp
+  * Changes to build rmw_fastrtps_cpp
+  * Changes to build rmw_fastrtps_dynamic_cpp
+* Remove an unnecessary constructor. (`#743 <https://github.com/ros2/rmw_fastrtps/issues/743>`_)
+  We can just use brace initialization here, and this
+  allows us to side-step an uncrustify issue with the constructor.
+* Contributors: Chris Lalancette, Miguel Company
+
+8.2.0 (2024-01-24)
+------------------
+* Add timestamp to rmw_publish tracepoint (`#694 <https://github.com/ros2/rmw_fastrtps/issues/694>`_)
+* Switch to Unix line endings. (`#736 <https://github.com/ros2/rmw_fastrtps/issues/736>`_)
+* Contributors: Chris Lalancette, Christopher Wecht
+
+8.1.0 (2023-12-26)
+------------------
+* Switch to target_link_libraries for linking. (`#734 <https://github.com/ros2/rmw_fastrtps/issues/734>`_)
+* Contributors: Chris Lalancette
+
+8.0.0 (2023-11-06)
+------------------
+* Quiet compiler warning in Release mode. (`#730 <https://github.com/ros2/rmw_fastrtps/issues/730>`_)
+* avoid using dds common public mutex directly (`#725 <https://github.com/ros2/rmw_fastrtps/issues/725>`_)
+* Contributors: Chen Lihui, Chris Lalancette
+
+7.6.0 (2023-10-04)
+------------------
+* Add rmw_count clients,services impl (`#641 <https://github.com/ros2/rmw_fastrtps/issues/641>`_)
+* Contributors: Minju, Lee
+
+7.5.0 (2023-09-07)
+------------------
+* Switch to using rclcpp::unique_lock. (`#712 <https://github.com/ros2/rmw_fastrtps/issues/712>`_)
+* Use DataWriter Qos to configure max_blocking_time on rmw_send_response (`#704 <https://github.com/ros2/rmw_fastrtps/issues/704>`_)
+* Contributors: Chris Lalancette, Miguel Company
+
+7.4.0 (2023-08-21)
+------------------
+* Clear out errors once we have handled them. (`#701 <https://github.com/ros2/rmw_fastrtps/issues/701>`_)
+* Instrument loaned message publication code path (`#698 <https://github.com/ros2/rmw_fastrtps/issues/698>`_)
+* Add in a missing data_reader check when creating subscription. (`#697 <https://github.com/ros2/rmw_fastrtps/issues/697>`_)
+* Contributors: Chris Lalancette, Christophe Bedard
+
+7.3.0 (2023-06-12)
+------------------
+* Use TRACETOOLS\_ prefix for tracepoint-related macros (`#686 <https://github.com/ros2/rmw_fastrtps/issues/686>`_)
+* typo fix. (`#693 <https://github.com/ros2/rmw_fastrtps/issues/693>`_)
+* Contributors: Christophe Bedard, Tomoya Fujita
+
+7.2.1 (2023-05-11)
+------------------
+* address clang nightly build error. (`#689 <https://github.com/ros2/rmw_fastrtps/issues/689>`_)
+* Check for errors while doing an rmw_discovery_options_copy. (`#690 <https://github.com/ros2/rmw_fastrtps/issues/690>`_)
+* Contributors: Chris Lalancette, Tomoya Fujita
+
+7.2.0 (2023-04-27)
+------------------
+
+7.1.1 (2023-04-12)
+------------------
+* Fix matched event issues (`#683 <https://github.com/ros2/rmw_fastrtps/issues/683>`_)
+* Contributors: Miguel Company
+
+7.1.0 (2023-04-12)
+------------------
+* Dynamic Subscription (BONUS: Allocators): rmw_fastrtps (`#687 <https://github.com/ros2/rmw_fastrtps/issues/687>`_)
+* Check for triggered guard conditions before waiting (`#685 <https://github.com/ros2/rmw_fastrtps/issues/685>`_)
+* Runtime Interface Reflection: rmw_fastrtps (`#655 <https://github.com/ros2/rmw_fastrtps/issues/655>`_)
+* [rmw_fastrtps] Improve handling of dynamic discovery (`#653 <https://github.com/ros2/rmw_fastrtps/issues/653>`_)
+* Type hash distribution in discovery (rep2011) (`#671 <https://github.com/ros2/rmw_fastrtps/issues/671>`_)
+* Implement matched event (`#645 <https://github.com/ros2/rmw_fastrtps/issues/645>`_)
+* Implement inconsistent topic event (`#654 <https://github.com/ros2/rmw_fastrtps/issues/654>`_)
+* Update all rmw_fastrtps packages to C++17. (`#674 <https://github.com/ros2/rmw_fastrtps/issues/674>`_)
+* Contributors: Barry Xu, Chris Lalancette, Emerson Knapp, Geoffrey Biggs, Michael Carroll, methylDragon
+
+7.0.0 (2023-02-14)
+------------------
+* Rewrite how Topics are tracked in rmw_fastrtps_cpp. (`#669 <https://github.com/ros2/rmw_fastrtps/issues/669>`_)
+* Delay lock on message callback setters (`#657 <https://github.com/ros2/rmw_fastrtps/issues/657>`_)
+* Make sure to add semicolons to the CHECK_TYPE_IDENTIFIER_MATCH. (`#658 <https://github.com/ros2/rmw_fastrtps/issues/658>`_)
+* Allow loaned messages without data-sharing (`#568 <https://github.com/ros2/rmw_fastrtps/issues/568>`_)
+* Fix incoherent dissociate_writer to dissociate_reader (`#647 <https://github.com/ros2/rmw_fastrtps/issues/647>`_) (`#649 <https://github.com/ros2/rmw_fastrtps/issues/649>`_)
+* [rolling] Update maintainers - 2022-11-07 (`#643 <https://github.com/ros2/rmw_fastrtps/issues/643>`_)
+* Contributors: Audrow Nash, Chris Lalancette, Miguel Company, Oscarchoi
+
+6.5.0 (2022-11-02)
+------------------
+* Remove duplicated code (`#637 <https://github.com/ros2/rmw_fastrtps/issues/637>`_)
+* Call callbacks only if unread count > 0 (`#634 <https://github.com/ros2/rmw_fastrtps/issues/634>`_)
+* Add rmw_get_gid_for_client impl (`#631 <https://github.com/ros2/rmw_fastrtps/issues/631>`_)
+* Contributors: Barry Xu, Brian, mauropasse
+
+6.4.0 (2022-09-13)
+------------------
+* Use Fast-DDS Waitsets instead of listeners (`#619 <https://github.com/ros2/rmw_fastrtps/issues/619>`_)
+* Take all available samples on service/client on_data_available. (`#616 <https://github.com/ros2/rmw_fastrtps/issues/616>`_)
+* Revert "add line feed for RCUTILS_SAFE_FWRITE_TO_STDERR (`#608 <https://github.com/ros2/rmw_fastrtps/issues/608>`_)" (`#612 <https://github.com/ros2/rmw_fastrtps/issues/612>`_)
+* add line feed for RCUTILS_SAFE_FWRITE_TO_STDERR (`#608 <https://github.com/ros2/rmw_fastrtps/issues/608>`_)
+* Contributors: Miguel Company, Ricardo González, Tomoya Fujita
+
+6.3.0 (2022-05-03)
+------------------
 
 6.2.1 (2022-03-28)
 ------------------
