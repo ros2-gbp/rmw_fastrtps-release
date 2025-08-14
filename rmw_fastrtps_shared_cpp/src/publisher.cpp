@@ -40,9 +40,8 @@ destroy_publisher(
     auto info = static_cast<CustomPublisherInfo *>(publisher->data);
 
     // Delete DataWriter
-    eprosima::fastdds::dds::ReturnCode_t ret = participant_info->publisher_->delete_datawriter(
-      info->data_writer_);
-    if (eprosima::fastdds::dds::RETCODE_OK != ret) {
+    ReturnCode_t ret = participant_info->publisher_->delete_datawriter(info->data_writer_);
+    if (ReturnCode_t::RETCODE_OK != ret) {
       RMW_SET_ERROR_MSG("Failed to delete datawriter");
       // This is the first failure on this function, and we have not changed state.
       // This means it should be safe to return an error

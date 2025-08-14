@@ -31,23 +31,19 @@ namespace rmw_fastrtps_cpp
 class ServiceTypeSupport : public TypeSupport
 {
 protected:
-  explicit ServiceTypeSupport(const rosidl_message_type_support_t * type_supports);
+  ServiceTypeSupport();
 };
 
 class RequestTypeSupport : public ServiceTypeSupport
 {
 public:
-  explicit RequestTypeSupport(
-    const service_type_support_callbacks_t * members,
-    const rosidl_message_type_support_t * type_supports);
+  explicit RequestTypeSupport(const service_type_support_callbacks_t * members);
 };
 
 class ResponseTypeSupport : public ServiceTypeSupport
 {
 public:
-  explicit ResponseTypeSupport(
-    const service_type_support_callbacks_t * members,
-    const rosidl_message_type_support_t * type_supports);
+  explicit ResponseTypeSupport(const service_type_support_callbacks_t * members);
 };
 
 }  // namespace rmw_fastrtps_cpp

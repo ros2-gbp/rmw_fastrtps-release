@@ -48,28 +48,20 @@ MessageTypeSupport<MembersType>::MessageTypeSupport(
     ss << message_namespace << "::";
   }
   ss << "dds_::" << message_name << "_";
-  this->set_name(ss.str().c_str());
+  this->setName(ss.str().c_str());
 
   // Fully bound and plain by default
   this->max_size_bound_ = true;
   this->is_plain_ = true;
   // Encapsulation size
-  this->max_serialized_type_size = 4;
+  this->m_typeSize = 4;
   if (this->members_->member_count_ != 0) {
-    this->max_serialized_type_size +=
-      static_cast<uint32_t>(this->calculateMaxSerializedSize(members, 0));
+    this->m_typeSize += static_cast<uint32_t>(this->calculateMaxSerializedSize(members, 0));
   } else {
-    this->max_serialized_type_size++;
+    this->m_typeSize++;
   }
-
-  if (this->members_->has_any_key_member_) {
-    this->key_max_serialized_size_ = this->calculateMaxSerializedKeySize(members);
-    this->is_compute_key_provided = true;
-    this->key_buffer_.reserve(this->key_max_serialized_size_);
-  }
-
   // Account for RTPS submessage alignment
-  this->max_serialized_type_size = (this->max_serialized_type_size + 3) & ~3;
+  this->m_typeSize = (this->m_typeSize + 3) & ~3;
 }
 
 }  // namespace rmw_fastrtps_dynamic_cpp
