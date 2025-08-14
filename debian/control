@@ -1,0 +1,12 @@
+Source: ros-jazzy-rmw-fastrtps-dynamic-cpp
+Section: misc
+Priority: optional
+Maintainer: Geoffrey Biggs <geoff@openrobotics.org>
+Build-Depends: debhelper (>= 9.0.0), ros-jazzy-ament-cmake-gtest <!nocheck>, ros-jazzy-ament-cmake-ros, ros-jazzy-ament-lint-auto <!nocheck>, ros-jazzy-ament-lint-common <!nocheck>, ros-jazzy-fastcdr, ros-jazzy-fastrtps, ros-jazzy-fastrtps-cmake-module, ros-jazzy-osrf-testing-tools-cpp <!nocheck>, ros-jazzy-rcpputils, ros-jazzy-rcutils, ros-jazzy-rmw, ros-jazzy-rmw-dds-common, ros-jazzy-rmw-fastrtps-shared-cpp, ros-jazzy-rosidl-runtime-c, ros-jazzy-rosidl-typesupport-introspection-c, ros-jazzy-rosidl-typesupport-introspection-cpp, ros-jazzy-test-msgs <!nocheck>, ros-jazzy-ros-workspace
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-jazzy-rmw-fastrtps-dynamic-cpp
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-jazzy-ament-cmake, ros-jazzy-fastcdr, ros-jazzy-fastrtps, ros-jazzy-fastrtps-cmake-module, ros-jazzy-rcpputils, ros-jazzy-rcutils, ros-jazzy-rmw, ros-jazzy-rmw-dds-common, ros-jazzy-rmw-fastrtps-shared-cpp, ros-jazzy-rosidl-runtime-c, ros-jazzy-rosidl-typesupport-introspection-c, ros-jazzy-rosidl-typesupport-introspection-cpp, ros-jazzy-ros-workspace
+Description: Implement the ROS middleware interface using introspection type support.
