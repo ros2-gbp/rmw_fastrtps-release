@@ -63,9 +63,6 @@ typedef struct CustomServiceInfo
   eprosima::fastdds::dds::DataReader * request_reader_{nullptr};
   eprosima::fastdds::dds::DataWriter * response_writer_{nullptr};
 
-  eprosima::fastdds::dds::Topic * request_topic_{nullptr};
-  eprosima::fastdds::dds::Topic * response_topic_{nullptr};
-
   ServiceListener * listener_{nullptr};
   ServicePubListener * pub_listener_{nullptr};
 
@@ -75,7 +72,12 @@ typedef struct CustomServiceInfo
 typedef struct CustomServiceRequest
 {
   eprosima::fastrtps::rtps::SampleIdentity sample_identity_;
-  eprosima::fastcdr::FastBuffer * buffer_{nullptr};
+  eprosima::fastcdr::FastBuffer * buffer_;
+
+  CustomServiceRequest()
+  : buffer_(nullptr)
+  {
+  }
 } CustomServiceRequest;
 
 class ServicePubListener : public eprosima::fastdds::dds::DataWriterListener
@@ -220,7 +222,7 @@ public:
   }
 
   // Provide handlers to perform an action when a
-  // new event from this listener has occurred
+  // new event from this listener has ocurred
   void
   set_on_new_request_callback(
     const void * user_data,
