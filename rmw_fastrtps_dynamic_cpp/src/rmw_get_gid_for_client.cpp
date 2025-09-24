@@ -1,4 +1,4 @@
-// Copyright 2019 Open Source Robotics Foundation, Inc.
+// Copyright 2022 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RMW_FASTRTPS_SHARED_CPP__CREATE_RMW_GID_HPP_
-#define RMW_FASTRTPS_SHARED_CPP__CREATE_RMW_GID_HPP_
-
-#include "fastdds/rtps/common/Guid.hpp"
-
+#include "rmw/error_handling.h"
+#include "rmw/rmw.h"
 #include "rmw/types.h"
 
-#include "rmw_fastrtps_shared_cpp/visibility_control.h"
+#include "rmw_fastrtps_shared_cpp/rmw_common.hpp"
 
-namespace rmw_fastrtps_shared_cpp
+#include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
+
+extern "C"
 {
-
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-rmw_gid_t
-create_rmw_gid(const char * identifier, const eprosima::fastdds::rtps::GUID_t & guid);
-
-}  // namespace rmw_fastrtps_shared_cpp
-
-#endif  // RMW_FASTRTPS_SHARED_CPP__CREATE_RMW_GID_HPP_
+rmw_ret_t
+rmw_get_gid_for_client(const rmw_client_t * client, rmw_gid_t * gid)
+{
+  return rmw_fastrtps_shared_cpp::__rmw_get_gid_for_client(
+    eprosima_fastrtps_identifier, client, gid);
+}
+}  // extern "C"

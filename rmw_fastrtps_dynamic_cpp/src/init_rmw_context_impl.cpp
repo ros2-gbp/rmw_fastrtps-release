@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "rmw_fastrtps_dynamic_cpp/init_rmw_context_impl.hpp"
+#include "init_rmw_context_impl.hpp"
 
 #include <cassert>
 #include <memory>
@@ -25,10 +25,9 @@
 #include "rmw_dds_common/msg/participant_entities_info.hpp"
 
 #include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
-#include "rmw_fastrtps_dynamic_cpp/publisher.hpp"
-#include "rmw_fastrtps_dynamic_cpp/subscription.hpp"
 
 #include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
+#include "rmw_fastrtps_shared_cpp/listener_thread.hpp"
 #include "rmw_fastrtps_shared_cpp/participant.hpp"
 #include "rmw_fastrtps_shared_cpp/publisher.hpp"
 #include "rmw_fastrtps_shared_cpp/subscription.hpp"
@@ -36,7 +35,8 @@
 
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 
-#include "rmw_fastrtps_shared_cpp/listener_thread.hpp"
+#include "publisher.hpp"
+#include "subscription.hpp"
 
 using rmw_dds_common::msg::ParticipantEntitiesInfo;
 
@@ -48,8 +48,11 @@ init_context_impl(
   rmw_publisher_options_t publisher_options = rmw_get_default_publisher_options();
   rmw_subscription_options_t subscription_options = rmw_get_default_subscription_options();
 
-  // This is currently not implemented in fastrtps
+  // Avoid receiving graph updates from our own publication
   subscription_options.ignore_local_publications = true;
+  // Improve graph discovery by using a unique listening port for its subscription
+  subscription_options.require_unique_network_flow_endpoints =
+    RMW_UNIQUE_NETWORK_FLOW_ENDPOINTS_OPTIONALLY_REQUIRED;
 
   std::unique_ptr<rmw_dds_common::Context> common_context(
     new(std::nothrow) rmw_dds_common::Context());
@@ -63,7 +66,7 @@ init_context_impl(
       eprosima_fastrtps_identifier,
       context->actual_domain_id,
       &context->options.security_options,
-      (context->options.localhost_only == RMW_LOCALHOST_ONLY_ENABLED) ? 1 : 0,
+      &context->options.discovery_options,
       context->options.enclave,
       common_context.get()),
     [&](CustomParticipantInfo * participant_info)
@@ -93,9 +96,7 @@ init_context_impl(
       rosidl_typesupport_cpp::get_message_type_support_handle<ParticipantEntitiesInfo>(),
       "ros_discovery_info",
       &qos,
-      &publisher_options,
-      false,       // our fastrtps typesupport doesn't support keyed topics
-      true),
+      &publisher_options),
     [&](rmw_publisher_t * pub)
     {
       if (RMW_RET_OK != rmw_fastrtps_shared_cpp::destroy_publisher(
@@ -158,6 +159,13 @@ init_context_impl(
   common_context->gid = rmw_fastrtps_shared_cpp::create_rmw_gid(
     eprosima_fastrtps_identifier, participant_info->participant_->guid());
   common_context->pub = publisher.get();
+  common_context->publish_callback = [](const rmw_publisher_t * pub, const void * msg) {
+      return rmw_fastrtps_shared_cpp::__rmw_publish(
+        eprosima_fastrtps_identifier,
+        pub,
+        msg,
+        nullptr);
+    };
   common_context->sub = subscription.get();
   common_context->graph_guard_condition = graph_guard_condition.get();
 
