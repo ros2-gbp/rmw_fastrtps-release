@@ -2,11 +2,23 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.3.3 (2025-09-24)
+9.4.3 (2025-10-20)
 ------------------
-* Check remaining size before resizing sequences (`#827 <https://github.com/ros2/rmw_fastrtps/issues/827>`_) (`#834 <https://github.com/ros2/rmw_fastrtps/issues/834>`_)
-* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_) (`#832 <https://github.com/ros2/rmw_fastrtps/issues/832>`_)
-* Contributors: mergify[bot]
+* Do not include rosidl_typesupport\_{c,cpp} in rmw impl typesupport list (`#843 <https://github.com/ros2/rmw_fastrtps/issues/843>`_)
+* Contributors: Christophe Bedard
+
+9.4.2 (2025-07-29)
+------------------
+* Check remaining size before resizing sequences (`#827 <https://github.com/ros2/rmw_fastrtps/issues/827>`_)
+* Contributors: Miguel Company
+
+9.4.1 (2025-07-01)
+------------------
+* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
+* Contributors: mosfet80
+
+9.4.0 (2025-04-25)
+------------------
 
 9.3.2 (2025-04-18)
 ------------------
