@@ -1,4 +1,4 @@
-// Copyright 2020 Open Source Robotics Foundation, Inc.
+// Copyright 2019 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INIT_RMW_CONTEXT_IMPL_HPP_
-#define INIT_RMW_CONTEXT_IMPL_HPP_
+#ifndef RMW_FASTRTPS_DYNAMIC_CPP__SUBSCRIPTION_HPP_
+#define RMW_FASTRTPS_DYNAMIC_CPP__SUBSCRIPTION_HPP_
 
-#include "rmw/init.h"
-#include "rmw/types.h"
+#include "rmw/rmw.h"
+#include "rmw/subscription_options.h"
+
+#include "rmw_fastrtps_shared_cpp/custom_participant_info.hpp"
 
 namespace rmw_fastrtps_dynamic_cpp
 {
 
-/// Increment `rmw_context_impl_t` reference count, initializing it if necessary.
-/**
- * Should be called when creating a node, and before using `context->impl`.
- */
-rmw_ret_t
-increment_context_impl_ref_count(rmw_context_t * context);
+rmw_subscription_t *
+create_subscription(
+  const CustomParticipantInfo * participant_info,
+  const rosidl_message_type_support_t * type_supports,
+  const char * topic_name,
+  const rmw_qos_profile_t * qos_policies,
+  const rmw_subscription_options_t * subscription_options,
+  bool keyed);
 
 }  // namespace rmw_fastrtps_dynamic_cpp
 
-#endif  // INIT_RMW_CONTEXT_IMPL_HPP_
+#endif  // RMW_FASTRTPS_DYNAMIC_CPP__SUBSCRIPTION_HPP_

@@ -42,20 +42,13 @@ public:
   bool deserializeROSmessage(
     eprosima::fastcdr::Cdr & deser, void * ros_message, const void * impl) const override;
 
-  explicit TypeSupport(const rosidl_message_type_support_t * type_supports);
-
-  bool get_key_hash_from_ros_message(
-    void * ros_message,
-    eprosima::fastdds::rtps::InstanceHandle_t * ihandle,
-    bool force_md5,
-    const void * impl) const override;
-
 protected:
+  TypeSupport();
+
   void set_members(const message_type_support_callbacks_t * members);
 
 private:
   const message_type_support_callbacks_t * members_;
-  const message_type_support_key_callbacks_t * key_callbacks_;
   bool has_data_;
 };
 

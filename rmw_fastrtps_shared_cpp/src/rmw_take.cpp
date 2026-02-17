@@ -22,7 +22,8 @@
 
 #include "fastdds/dds/subscriber/SampleInfo.hpp"
 #include "fastdds/dds/core/StackAllocatedSequence.hpp"
-#include "fastdds/utils/collections/ResourceLimitedVector.hpp"
+
+#include "fastrtps/utils/collections/ResourceLimitedVector.hpp"
 
 #include "fastcdr/Cdr.h"
 #include "fastcdr/FastBuffer.h"
@@ -34,14 +35,14 @@
 #include "rmw_fastrtps_shared_cpp/TypeSupport.hpp"
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
-#include "rosidl_dynamic_typesupport/types.h"
-
 #include "tracetools/tracetools.h"
 
 #include "rcpputils/scope_exit.hpp"
 
 namespace rmw_fastrtps_shared_cpp
 {
+
+using DataSharingKind = eprosima::fastdds::dds::DataSharingKind;
 
 void
 _assign_message_info(
@@ -60,7 +61,7 @@ _assign_message_info(
   sender_gid->implementation_identifier = identifier;
   memset(sender_gid->data, 0, RMW_GID_STORAGE_SIZE);
 
-  rmw_fastrtps_shared_cpp::copy_from_fastdds_guid_to_byte_array(
+  rmw_fastrtps_shared_cpp::copy_from_fastrtps_guid_to_byte_array(
     sinfo->sample_identity.writer_guid(),
     sender_gid->data);
 }
@@ -80,13 +81,13 @@ _take(
   RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
     subscription handle,
     subscription->implementation_identifier, identifier,
-    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
+    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION)
 
   auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
   RCUTILS_CHECK_FOR_NULL_WITH_MSG(info, "custom subscriber info is null", return RMW_RET_ERROR);
 
   rmw_fastrtps_shared_cpp::SerializedData data;
-  data.type = FASTDDS_SERIALIZED_DATA_TYPE_ROS_MESSAGE;
+  data.is_cdr_buffer = false;
   data.data = ros_message;
   data.impl = info->type_support_impl_;
 
@@ -94,10 +95,7 @@ _take(
   const_cast<void **>(data_values.buffer())[0] = &data;
   eprosima::fastdds::dds::SampleInfoSeq info_seq{1};
 
-  while (eprosima::fastdds::dds::RETCODE_OK == info->data_reader_->take(data_values, info_seq, 1)) {
-    // The info->data_reader_->take() call already modified the ros_message arg
-    // See rmw_fastrtps_shared_cpp/src/TypeSupport_impl.cpp
-
+  while (ReturnCode_t::RETCODE_OK == info->data_reader_->take(data_values, info_seq, 1)) {
     auto reset = rcpputils::make_scope_exit(
       [&]()
       {
@@ -107,7 +105,7 @@ _take(
 
     if (subscription->options.ignore_local_publications) {
       auto sample_writer_guid =
-        eprosima::fastdds::rtps::iHandle2GUID(info_seq[0].publication_handle);
+        eprosima::fastrtps::rtps::iHandle2GUID(info_seq[0].publication_handle);
 
       if (sample_writer_guid.guidPrefix == info->data_reader_->guid().guidPrefix) {
         // This is a local publication. Ignore it
@@ -124,7 +122,7 @@ _take(
     }
   }
 
-  TRACETOOLS_TRACEPOINT(
+  TRACEPOINT(
     rmw_take,
     static_cast<const void *>(subscription),
     static_cast<const void *>(ros_message),
@@ -305,23 +303,24 @@ _take_serialized_message(
   RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
     subscription handle,
     subscription->implementation_identifier, identifier,
-    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
+    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION)
 
   auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
   RCUTILS_CHECK_FOR_NULL_WITH_MSG(info, "custom subscriber info is null", return RMW_RET_ERROR);
 
   eprosima::fastcdr::FastBuffer buffer;
+  eprosima::fastdds::dds::SampleInfo sinfo;
 
   rmw_fastrtps_shared_cpp::SerializedData data;
-  data.type = FASTDDS_SERIALIZED_DATA_TYPE_CDR_BUFFER;
+  data.is_cdr_buffer = true;
   data.data = &buffer;
-  data.impl = nullptr;  // not used when type is FASTDDS_SERIALIZED_DATA_TYPE_CDR_BUFFER
+  data.impl = nullptr;    // not used when is_cdr_buffer is true
 
   eprosima::fastdds::dds::StackAllocatedSequence<void *, 1> data_values;
   const_cast<void **>(data_values.buffer())[0] = &data;
   eprosima::fastdds::dds::SampleInfoSeq info_seq{1};
 
-  while (eprosima::fastdds::dds::RETCODE_OK == info->data_reader_->take(data_values, info_seq, 1)) {
+  while (ReturnCode_t::RETCODE_OK == info->data_reader_->take(data_values, info_seq, 1)) {
     auto reset = rcpputils::make_scope_exit(
       [&]()
       {
@@ -332,7 +331,7 @@ _take_serialized_message(
     if (info_seq[0].valid_data) {
       if (subscription->options.ignore_local_publications) {
         auto sample_writer_guid =
-          eprosima::fastdds::rtps::iHandle2GUID(info_seq[0].publication_handle);
+          eprosima::fastrtps::rtps::iHandle2GUID(info_seq[0].publication_handle);
 
         if (sample_writer_guid.guidPrefix == info->data_reader_->guid().guidPrefix) {
           // This is a local publication. Ignore it
@@ -356,12 +355,7 @@ _take_serialized_message(
       break;
     }
   }
-  TRACETOOLS_TRACEPOINT(
-    rmw_take,
-    static_cast<const void *>(subscription),
-    static_cast<const void *>(serialized_message),
-    (message_info ? message_info->source_timestamp : 0LL),
-    *taken);
+
   return RMW_RET_OK;
 }
 
@@ -411,106 +405,6 @@ __rmw_take_serialized_message_with_info(
     identifier, subscription, serialized_message, taken, message_info, allocation);
 }
 
-rmw_ret_t
-_take_dynamic_message(
-  const char * identifier,
-  const rmw_subscription_t * subscription,
-  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
-  bool * taken,
-  rmw_message_info_t * message_info,
-  rmw_subscription_allocation_t * allocation)
-{
-  (void) allocation;
-  *taken = false;
-
-  RMW_CHECK_TYPE_IDENTIFIERS_MATCH(
-    subscription handle,
-    subscription->implementation_identifier, identifier,
-    return RMW_RET_INCORRECT_RMW_IMPLEMENTATION);
-
-  auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
-  RCUTILS_CHECK_FOR_NULL_WITH_MSG(info, "custom subscriber info is null", return RMW_RET_ERROR);
-
-  eprosima::fastcdr::FastBuffer buffer;
-
-  rmw_fastrtps_shared_cpp::SerializedData data;
-  data.type = FASTDDS_SERIALIZED_DATA_TYPE_DYNAMIC_MESSAGE;
-  data.data = dynamic_data->impl.handle;
-  data.impl = nullptr;  // not used when type is FASTDDS_SERIALIZED_DATA_TYPE_DYNAMIC_MESSAGE
-
-  eprosima::fastdds::dds::StackAllocatedSequence<void *, 1> data_values;
-  const_cast<void **>(data_values.buffer())[0] = &data;
-  eprosima::fastdds::dds::SampleInfoSeq info_seq{1};
-
-  while (eprosima::fastdds::dds::RETCODE_OK == info->data_reader_->take(data_values, info_seq, 1)) {
-    // The info->data_reader_->take() call already modified the dynamic_data arg
-    // See rmw_fastrtps_shared_cpp/src/TypeSupport_impl.cpp
-
-    auto reset = rcpputils::make_scope_exit(
-      [&]()
-      {
-        data_values.length(0);
-        info_seq.length(0);
-      });
-
-    if (info_seq[0].valid_data) {
-      if (message_info) {
-        _assign_message_info(identifier, message_info, &info_seq[0]);
-      }
-      *taken = true;
-      break;
-    }
-  }
-
-  return RMW_RET_OK;
-}
-
-rmw_ret_t
-__rmw_take_dynamic_message(
-  const char * identifier,
-  const rmw_subscription_t * subscription,
-  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
-  bool * taken,
-  rmw_subscription_allocation_t * allocation)
-{
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    subscription, RMW_RET_INVALID_ARGUMENT);
-
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    dynamic_data, RMW_RET_INVALID_ARGUMENT);
-
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    taken, RMW_RET_INVALID_ARGUMENT);
-
-  return _take_dynamic_message(
-    identifier, subscription, dynamic_data, taken, nullptr, allocation);
-}
-
-rmw_ret_t
-__rmw_take_dynamic_message_with_info(
-  const char * identifier,
-  const rmw_subscription_t * subscription,
-  rosidl_dynamic_typesupport_dynamic_data_t * dynamic_data,
-  bool * taken,
-  rmw_message_info_t * message_info,
-  rmw_subscription_allocation_t * allocation)
-{
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    subscription, RMW_RET_INVALID_ARGUMENT);
-
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    dynamic_data, RMW_RET_INVALID_ARGUMENT);
-
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    taken, RMW_RET_INVALID_ARGUMENT);
-
-  RMW_CHECK_ARGUMENT_FOR_NULL(
-    message_info, RMW_RET_INVALID_ARGUMENT);
-
-  return _take_dynamic_message(
-    identifier, subscription, dynamic_data, taken, message_info, allocation);
-}
-
 // ----------------- Loans related code ------------------------- //
 
 struct GenericSequence : public eprosima::fastdds::dds::LoanableCollection
@@ -534,7 +428,7 @@ struct LoanManager
   };
 
   explicit LoanManager(
-    const eprosima::fastdds::ResourceLimitedContainerConfig & items_cfg)
+    const eprosima::fastrtps::ResourceLimitedContainerConfig & items_cfg)
   : items(items_cfg)
   {
   }
@@ -565,7 +459,7 @@ struct LoanManager
 
 private:
   std::mutex mtx;
-  using ItemVector = eprosima::fastdds::ResourceLimitedVector<std::unique_ptr<Item>>;
+  using ItemVector = eprosima::fastrtps::ResourceLimitedVector<std::unique_ptr<Item>>;
   ItemVector items RCPPUTILS_TSA_GUARDED_BY(mtx);
 };
 
@@ -575,9 +469,8 @@ __init_subscription_for_loans(
 {
   auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
   const auto & qos = info->data_reader_->get_qos();
-  // The type support in the RMW implementation is always XCDR1.
-  subscription->can_loan_messages =
-    info->type_support_->is_plain(eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION);
+  bool has_data_sharing = DataSharingKind::OFF != qos.data_sharing().kind();
+  subscription->can_loan_messages = has_data_sharing && info->type_support_->is_plain();
   if (subscription->can_loan_messages) {
     const auto & allocation_qos = qos.reader_resource_limits().outstanding_reads_allocation;
     info->loan_manager_ = std::make_shared<LoanManager>(allocation_qos);
@@ -608,9 +501,7 @@ __rmw_take_loaned_message_internal(
 
   auto item = std::make_unique<rmw_fastrtps_shared_cpp::LoanManager::Item>();
 
-  while (eprosima::fastdds::dds::RETCODE_OK ==
-    info->data_reader_->take(item->data_seq, item->info_seq, 1))
-  {
+  while (ReturnCode_t::RETCODE_OK == info->data_reader_->take(item->data_seq, item->info_seq, 1)) {
     if (item->info_seq[0].valid_data) {
       if (nullptr != message_info) {
         _assign_message_info(identifier, message_info, &item->info_seq[0]);
@@ -652,8 +543,7 @@ __rmw_return_loaned_message_from_subscription(
   std::unique_ptr<rmw_fastrtps_shared_cpp::LoanManager::Item> item;
   item = info->loan_manager_->erase_item(loaned_message);
   if (item != nullptr) {
-    auto ret_code = info->data_reader_->return_loan(item->data_seq, item->info_seq);
-    if (eprosima::fastdds::dds::RETCODE_OK != ret_code) {
+    if (!info->data_reader_->return_loan(item->data_seq, item->info_seq)) {
       RMW_SET_ERROR_MSG("Error returning loan");
       return RMW_RET_ERROR;
     }
