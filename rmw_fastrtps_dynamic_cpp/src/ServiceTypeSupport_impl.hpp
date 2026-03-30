@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_IMPL_HPP_
-#define RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_IMPL_HPP_
+#ifndef SERVICETYPESUPPORT_IMPL_HPP_
+#define SERVICETYPESUPPORT_IMPL_HPP_
 
 #include <cassert>
 #include <sstream>
@@ -24,7 +24,7 @@
 
 #include "rcpputils/find_and_replace.hpp"
 
-#include "rmw_fastrtps_dynamic_cpp/ServiceTypeSupport.hpp"
+#include "ServiceTypeSupport.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 
 namespace rmw_fastrtps_dynamic_cpp
@@ -32,8 +32,10 @@ namespace rmw_fastrtps_dynamic_cpp
 
 template<typename ServiceMembersType, typename MessageMembersType>
 RequestTypeSupport<ServiceMembersType, MessageMembersType>::RequestTypeSupport(
-  const ServiceMembersType * members, const void * ros_type_support)
-: TypeSupport<MessageMembersType>(ros_type_support)
+  const ServiceMembersType * members,
+  const void * ros_type_support,
+  const void * message_type_supports)
+: TypeSupport<MessageMembersType>(ros_type_support, message_type_supports)
 {
   assert(members);
   this->members_ = members->request_members_;
@@ -47,26 +49,36 @@ RequestTypeSupport<ServiceMembersType, MessageMembersType>::RequestTypeSupport(
     ss << service_namespace << "::";
   }
   ss << "dds_::" << service_name << "_Request_";
-  this->setName(ss.str().c_str());
+  this->set_name(ss.str().c_str());
 
   // Fully bound and plain by default
   this->max_size_bound_ = true;
   this->is_plain_ = true;
   // Encapsulation size
-  this->m_typeSize = 4;
+  this->max_serialized_type_size = 4;
   if (this->members_->member_count_ != 0) {
-    this->m_typeSize += static_cast<uint32_t>(this->calculateMaxSerializedSize(this->members_, 0));
+    this->max_serialized_type_size +=
+      static_cast<uint32_t>(this->calculateMaxSerializedSize(this->members_, 0));
   } else {
-    this->m_typeSize++;
+    this->max_serialized_type_size++;
   }
+
+  if (this->members_->has_any_key_member_) {
+    this->key_max_serialized_size_ = this->calculateMaxSerializedKeySize(this->members_);
+    this->is_compute_key_provided = true;
+    this->key_buffer_.reserve(this->key_max_serialized_size_);
+  }
+
   // Account for RTPS submessage alignment
-  this->m_typeSize = (this->m_typeSize + 3) & ~3;
+  this->max_serialized_type_size = (this->max_serialized_type_size + 3) & ~3;
 }
 
 template<typename ServiceMembersType, typename MessageMembersType>
 ResponseTypeSupport<ServiceMembersType, MessageMembersType>::ResponseTypeSupport(
-  const ServiceMembersType * members, const void * ros_type_support)
-: TypeSupport<MessageMembersType>(ros_type_support)
+  const ServiceMembersType * members,
+  const void * ros_type_support,
+  const void * message_type_supports)
+: TypeSupport<MessageMembersType>(ros_type_support, message_type_supports)
 {
   assert(members);
   this->members_ = members->response_members_;
@@ -80,22 +92,30 @@ ResponseTypeSupport<ServiceMembersType, MessageMembersType>::ResponseTypeSupport
     ss << service_namespace << "::";
   }
   ss << "dds_::" << service_name << "_Response_";
-  this->setName(ss.str().c_str());
+  this->set_name(ss.str().c_str());
 
   // Fully bound and plain by default
   this->max_size_bound_ = true;
   this->is_plain_ = true;
   // Encapsulation size
-  this->m_typeSize = 4;
+  this->max_serialized_type_size = 4;
   if (this->members_->member_count_ != 0) {
-    this->m_typeSize += static_cast<uint32_t>(this->calculateMaxSerializedSize(this->members_, 0));
+    this->max_serialized_type_size +=
+      static_cast<uint32_t>(this->calculateMaxSerializedSize(this->members_, 0));
   } else {
-    this->m_typeSize++;
+    this->max_serialized_type_size++;
   }
+
+  if (this->members_->has_any_key_member_) {
+    this->key_max_serialized_size_ = this->calculateMaxSerializedKeySize(this->members_);
+    this->is_compute_key_provided = true;
+    this->key_buffer_.reserve(this->key_max_serialized_size_);
+  }
+
   // Account for RTPS submessage alignment
-  this->m_typeSize = (this->m_typeSize + 3) & ~3;
+  this->max_serialized_type_size = (this->max_serialized_type_size + 3) & ~3;
 }
 
 }  // namespace rmw_fastrtps_dynamic_cpp
 
-#endif  // RMW_FASTRTPS_DYNAMIC_CPP__SERVICETYPESUPPORT_IMPL_HPP_
+#endif  // SERVICETYPESUPPORT_IMPL_HPP_

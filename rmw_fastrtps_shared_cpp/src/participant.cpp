@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -27,10 +27,12 @@
 #include "fastdds/dds/subscriber/DataReader.hpp"
 #include "fastdds/dds/subscriber/Subscriber.hpp"
 #include "fastdds/dds/subscriber/qos/SubscriberQos.hpp"
-#include "fastdds/rtps/attributes/PropertyPolicy.h"
-#include "fastdds/rtps/common/Property.h"
-#include "fastdds/rtps/transport/UDPv4TransportDescriptor.h"
-#include "fastdds/rtps/transport/shared_mem/SharedMemTransportDescriptor.h"
+#include "fastdds/rtps/attributes/PropertyPolicy.hpp"
+#include "fastdds/rtps/common/Locator.hpp"
+#include "fastdds/rtps/common/Property.hpp"
+#include "fastdds/rtps/transport/UDPv4TransportDescriptor.hpp"
+#include "fastdds/rtps/transport/shared_mem/SharedMemTransportDescriptor.hpp"
+#include "fastdds/utils/IPLocator.hpp"
 
 #include "rcpputils/scope_exit.hpp"
 #include "rcutils/env.h"
@@ -44,7 +46,7 @@
 #include "rmw_fastrtps_shared_cpp/rmw_security_logging.hpp"
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
-#include "rmw_dds_common/security.hpp"
+#include "rmw_security_common/security.hpp"
 
 // Private function to create Participant with QoS
 static CustomParticipantInfo *
@@ -71,8 +73,7 @@ __create_participant(
     [participant_info]() {
       if (nullptr != participant_info->participant_) {
         participant_info->participant_->delete_publisher(participant_info->publisher_);
-        eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->delete_participant(
-          participant_info->participant_);
+        participant_info->factory_->delete_participant(participant_info->participant_);
       }
       delete participant_info->listener_;
       delete participant_info;
@@ -97,7 +98,7 @@ __create_participant(
   eprosima::fastdds::dds::StatusMask participant_mask = eprosima::fastdds::dds::StatusMask::none();
 
   participant_info->participant_ =
-    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->create_participant(
+    participant_info->factory_->create_participant(
     static_cast<uint32_t>(domain_id), domainParticipantQos,
     participant_info->listener_, participant_mask);
 
@@ -145,7 +146,7 @@ rmw_fastrtps_shared_cpp::create_participant(
   const char * identifier,
   size_t domain_id,
   const rmw_security_options_t * security_options,
-  bool localhost_only,
+  const rmw_discovery_options_t * discovery_options,
   const char * enclave,
   rmw_dds_common::Context * common_context)
 {
@@ -157,23 +158,130 @@ rmw_fastrtps_shared_cpp::create_participant(
   }
 
   // Load default XML profile.
-  eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->load_profiles();
-  eprosima::fastdds::dds::DomainParticipantQos domainParticipantQos =
-    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->get_default_participant_qos();
+  // Note: FASTRTPS_DEFAULT_PROFILES_FILE value is processed but it is a deprecated variable.
+  // Use FASTDDS_DEFAULT_PROFILES_FILE instead.
+  const char * env_value;
+  const char * error_str;
+  auto factory = eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
 
+  error_str = rcutils_get_env("FASTRTPS_DEFAULT_PROFILES_FILE", &env_value);
+  if (error_str != NULL) {
+    RCUTILS_LOG_DEBUG_NAMED("rmw_fastrtps_shared_cpp", "Error getting env var: %s\n", error_str);
+    return nullptr;
+  }
+  if(env_value != nullptr) {
+    if (strcmp(env_value, "") != 0) {
+      RCUTILS_LOG_WARN_NAMED(
+        "rmw_fastrtps_shared_cpp",
+        "FASTRTPS_DEFAULT_PROFILES_FILE value is used for participant configuration, "
+        "but it is deprecated and will no longer be supported. "
+        "Use FASTDDS_DEFAULT_PROFILES_FILE instead.");
+      rcutils_reset_error();
+      std::string env_value_str = std::string(env_value);
+      factory->load_XML_profiles_file(env_value_str);
+    }
+  }
 
-  if (localhost_only) {
-    // In order to use the interface white list, we need to disable the default transport config
-    domainParticipantQos.transport().use_builtin_transports = false;
+  factory->load_profiles();
+  auto domainParticipantQos = factory->get_default_participant_qos();
 
-    // Add a UDPv4 transport with only localhost enabled
-    auto udp_transport = std::make_shared<eprosima::fastdds::rtps::UDPv4TransportDescriptor>();
-    udp_transport->interfaceWhiteList.emplace_back("127.0.0.1");
-    domainParticipantQos.transport().user_transports.push_back(udp_transport);
+  // Configure discovery
+  switch (discovery_options->automatic_discovery_range) {
+    case RMW_AUTOMATIC_DISCOVERY_RANGE_NOT_SET:
+      RMW_SET_ERROR_MSG("automatic discovery range must be set");
+      return nullptr;
+      break;
+    case RMW_AUTOMATIC_DISCOVERY_RANGE_OFF: {
+        // Limit the number of participants to 1 (the local participant)
+        domainParticipantQos.allocation().participants.initial = 1;
+        domainParticipantQos.allocation().participants.maximum = 1;
+        domainParticipantQos.allocation().participants.increment = 0;
+        // Clear the list of multicast listening locators
+        domainParticipantQos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
+        // Add a unicast locator to prevent creation of default multicast locator
+        eprosima::fastdds::rtps::Locator_t default_unicast_locator;
+        domainParticipantQos.wire_protocol()
+        .builtin.metatrafficUnicastLocatorList.push_back(default_unicast_locator);
+        break;
+      }
+    case RMW_AUTOMATIC_DISCOVERY_RANGE_LOCALHOST: {
+        // Clear the list of multicast listening locators
+        domainParticipantQos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
+        // Add a unicast locator to prevent creation of default multicast locator
+        eprosima::fastdds::rtps::Locator_t default_unicast_locator;
+        domainParticipantQos.wire_protocol()
+        .builtin.metatrafficUnicastLocatorList.push_back(default_unicast_locator);
+        // Disable built-in transports, since we are configuring our own.
+        domainParticipantQos.transport().use_builtin_transports = false;
+        // Add a shared memory transport
+        auto shm_transport =
+          std::make_shared<eprosima::fastdds::rtps::SharedMemTransportDescriptor>();
+        domainParticipantQos.transport().user_transports.push_back(shm_transport);
+        // Add UDP transport with increased max initial peers.
+        // This controls the number of participants that can be discovered on a single host,
+        // which is roughly equivalent to the number of ROS 2 processes.
+        // If it's too small then we won't connect to all participants.
+        // If it's too large then we will send a lot of announcement traffic.
+        // The default number here is picked arbitrarily.
+        auto udp_transport = std::make_shared<eprosima::fastdds::rtps::UDPv4TransportDescriptor>();
+        udp_transport->maxInitialPeersRange = 32;
+        domainParticipantQos.transport().user_transports.push_back(udp_transport);
+        break;
+      }
+    case RMW_AUTOMATIC_DISCOVERY_RANGE_SUBNET:
+      // Nothing to do; use the default FastDDS behaviour
+      break;
+    case RMW_AUTOMATIC_DISCOVERY_RANGE_SYSTEM_DEFAULT:
+      // Nothing to do; use the default FastDDS behaviour
+      break;
+    default:
+      RMW_SET_ERROR_MSG("automatic_discovery_range is an unknown value");
+      return nullptr;
+      break;
+  }
 
-    // Add SHM transport if available
-    auto shm_transport = std::make_shared<eprosima::fastdds::rtps::SharedMemTransportDescriptor>();
-    domainParticipantQos.transport().user_transports.push_back(shm_transport);
+  // Add initial peers if LOCALHOST or SUBNET are used
+  if (
+    RMW_AUTOMATIC_DISCOVERY_RANGE_LOCALHOST == discovery_options->automatic_discovery_range ||
+    RMW_AUTOMATIC_DISCOVERY_RANGE_SUBNET == discovery_options->automatic_discovery_range)
+  {
+    for (size_t ii = 0; ii < discovery_options->static_peers_count; ++ii) {
+      eprosima::fastdds::rtps::Locator_t peer;
+      auto response = eprosima::fastdds::rtps::IPLocator::resolveNameDNS(
+        discovery_options->static_peers[ii].peer_address);
+      // Get the first returned IPv4
+      if (response.first.size() > 0) {
+        eprosima::fastdds::rtps::IPLocator::setIPv4(peer, response.first.begin()->data());
+      } else {
+        RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
+          "Unable to resolve peer %s\n",
+          discovery_options->static_peers[ii].peer_address);
+        return nullptr;
+      }
+      // Not specifying the port of the peer means FastDDS will try all
+      // possible participant ports according to the port calculation equation
+      // in the RTPS spec section 9.6.1.1, up to the number of peers specified
+      // in maxInitialPeersRange.
+      domainParticipantQos.wire_protocol().builtin.initialPeersList.push_back(peer);
+    }
+  }
+
+  if (RMW_AUTOMATIC_DISCOVERY_RANGE_LOCALHOST == discovery_options->automatic_discovery_range) {
+    // Add localhost as a static peer
+    eprosima::fastdds::rtps::Locator_t peer;
+    eprosima::fastdds::rtps::IPLocator::setIPv4(peer, "127.0.0.1");
+    domainParticipantQos.wire_protocol().builtin.initialPeersList.push_back(peer);
+  }
+
+  if (
+    RMW_AUTOMATIC_DISCOVERY_RANGE_SUBNET == discovery_options->automatic_discovery_range &&
+    domainParticipantQos.wire_protocol().builtin.initialPeersList.size())
+  {
+    // Make sure we send an announcment on the multicast address
+    eprosima::fastdds::rtps::Locator_t locator;
+    eprosima::fastdds::rtps::IPLocator::setIPv4(locator, 239, 255, 0, 1);
+    domainParticipantQos.wire_protocol()
+    .builtin.initialPeersList.push_back(locator);
   }
 
   size_t length = snprintf(nullptr, 0, "enclave=%s;", enclave) + 1;
@@ -190,8 +298,7 @@ rmw_fastrtps_shared_cpp::create_participant(
 
   bool leave_middleware_default_qos = false;
   publishing_mode_t publishing_mode = publishing_mode_t::SYNCHRONOUS;
-  const char * env_value;
-  const char * error_str;
+
   error_str = rcutils_get_env("RMW_FASTRTPS_USE_QOS_FROM_XML", &env_value);
   if (error_str != NULL) {
     RCUTILS_LOG_DEBUG_NAMED("rmw_fastrtps_shared_cpp", "Error getting env var: %s\n", error_str);
@@ -224,26 +331,46 @@ rmw_fastrtps_shared_cpp::create_participant(
   // allow reallocation to support discovery messages bigger than 5000 bytes
   if (!leave_middleware_default_qos) {
     domainParticipantQos.wire_protocol().builtin.readerHistoryMemoryPolicy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
     domainParticipantQos.wire_protocol().builtin.writerHistoryMemoryPolicy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
   }
   if (security_options->security_root_path) {
     // if security_root_path provided, try to find the key and certificate files
 #if HAVE_SECURITY
-    std::unordered_map<std::string, std::string> security_files_paths;
-    if (rmw_dds_common::get_security_files(
-        "file://", security_options->security_root_path, security_files_paths))
+    rcutils_allocator_t allocator = rcutils_get_default_allocator();
+    rcutils_string_map_t security_files_paths = rcutils_get_zero_initialized_string_map();
+    rcutils_ret_t ret = rcutils_string_map_init(&security_files_paths, 0, allocator);
+
+    if (ret != RMW_RET_OK) {
+      RMW_SET_ERROR_MSG("Failed to initialize string map for security");
+      return nullptr;
+    }
+
+    auto scope_exit_ws = rcpputils::make_scope_exit(
+      [&security_files_paths]()
+      {
+        rcutils_ret_t ret = rcutils_string_map_fini(&security_files_paths);
+        if (ret != RMW_RET_OK) {
+          RMW_SET_ERROR_MSG("Failed to fini string map for security");
+        }
+      });
+
+    if (get_security_files_support_pkcs(
+        true, "file://", security_options->security_root_path, &security_files_paths) == RMW_RET_OK)
     {
-      eprosima::fastrtps::rtps::PropertyPolicy property_policy;
+      eprosima::fastdds::rtps::PropertyPolicy property_policy;
       property_policy.properties().emplace_back(
         "dds.sec.auth.plugin", "builtin.PKI-DH");
       property_policy.properties().emplace_back(
-        "dds.sec.auth.builtin.PKI-DH.identity_ca", security_files_paths["IDENTITY_CA"]);
+        "dds.sec.auth.builtin.PKI-DH.identity_ca",
+        std::string(rcutils_string_map_get(&security_files_paths, "IDENTITY_CA")));
       property_policy.properties().emplace_back(
-        "dds.sec.auth.builtin.PKI-DH.identity_certificate", security_files_paths["CERTIFICATE"]);
+        "dds.sec.auth.builtin.PKI-DH.identity_certificate",
+        std::string(rcutils_string_map_get(&security_files_paths, "CERTIFICATE")));
       property_policy.properties().emplace_back(
-        "dds.sec.auth.builtin.PKI-DH.private_key", security_files_paths["PRIVATE_KEY"]);
+        "dds.sec.auth.builtin.PKI-DH.private_key",
+        std::string(rcutils_string_map_get(&security_files_paths, "PRIVATE_KEY")));
       property_policy.properties().emplace_back(
         "dds.sec.crypto.plugin", "builtin.AES-GCM-GMAC");
 
@@ -251,17 +378,18 @@ rmw_fastrtps_shared_cpp::create_participant(
         "dds.sec.access.plugin", "builtin.Access-Permissions");
       property_policy.properties().emplace_back(
         "dds.sec.access.builtin.Access-Permissions.permissions_ca",
-        security_files_paths["PERMISSIONS_CA"]);
+        std::string(rcutils_string_map_get(&security_files_paths, "PERMISSIONS_CA")));
       property_policy.properties().emplace_back(
         "dds.sec.access.builtin.Access-Permissions.governance",
-        security_files_paths["GOVERNANCE"]);
+        std::string(rcutils_string_map_get(&security_files_paths, "GOVERNANCE")));
       property_policy.properties().emplace_back(
         "dds.sec.access.builtin.Access-Permissions.permissions",
-        security_files_paths["PERMISSIONS"]);
+        std::string(rcutils_string_map_get(&security_files_paths, "PERMISSIONS")));
 
-      if (security_files_paths.count("CRL") > 0) {
+      if (rcutils_string_map_key_exists(&security_files_paths, "CRL")) {
         property_policy.properties().emplace_back(
-          "dds.sec.auth.builtin.PKI-DH.identity_crl", security_files_paths["CRL"]);
+          "dds.sec.auth.builtin.PKI-DH.identity_crl",
+          std::string(rcutils_string_map_get(&security_files_paths, "CRL")));
       }
 
       // Configure security logging
@@ -301,7 +429,7 @@ rmw_fastrtps_shared_cpp::destroy_participant(CustomParticipantInfo * participant
   // Make the participant stop listening to discovery
   participant_info->participant_->set_listener(nullptr);
 
-  ReturnCode_t ret = ReturnCode_t::RETCODE_OK;
+  eprosima::fastdds::dds::ReturnCode_t ret = eprosima::fastdds::dds::RETCODE_OK;
 
   // Collect topics that should be deleted
   std::vector<const eprosima::fastdds::dds::TopicDescription *> topics_to_remove;
@@ -315,7 +443,7 @@ rmw_fastrtps_shared_cpp::destroy_participant(CustomParticipantInfo * participant
       participant_info->publisher_->delete_datawriter(writer);
     }
     ret = participant_info->participant_->delete_publisher(participant_info->publisher_);
-    if (ReturnCode_t::RETCODE_OK != ret) {
+    if (eprosima::fastdds::dds::RETCODE_OK != ret) {
       RCUTILS_SAFE_FWRITE_TO_STDERR("Failed to delete dds publisher from participant");
     }
   }
@@ -329,7 +457,7 @@ rmw_fastrtps_shared_cpp::destroy_participant(CustomParticipantInfo * participant
       participant_info->subscriber_->delete_datareader(reader);
     }
     ret = participant_info->participant_->delete_subscriber(participant_info->subscriber_);
-    if (ReturnCode_t::RETCODE_OK != ret) {
+    if (eprosima::fastdds::dds::RETCODE_OK != ret) {
       RCUTILS_SAFE_FWRITE_TO_STDERR("Failed to delete dds subscriber from participant");
     }
   }
@@ -337,15 +465,19 @@ rmw_fastrtps_shared_cpp::destroy_participant(CustomParticipantInfo * participant
   // Remove topics
   eprosima::fastdds::dds::TypeSupport dummy_type;
   for (auto topic : topics_to_remove) {
-    remove_topic_and_type(participant_info, topic, dummy_type);
+    // Passing nullptr as the EventListenerInterface argument means that
+    // remove_topic_and_type() -> participant_info->delete_topic() will not remove an
+    // the EventListenerInterface from the CustomTopicListener::event_listeners_ set.  That would
+    // constitute a memory leak, except for the fact that the participant is going to be deleted
+    // right below.  At that point, the entire set will be destroyed and all memory freed.
+    remove_topic_and_type(participant_info, nullptr, topic, dummy_type);
   }
 
   // Delete Domain Participant
-  ret =
-    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->delete_participant(
+  ret = participant_info->factory_->delete_participant(
     participant_info->participant_);
 
-  if (ReturnCode_t::RETCODE_OK != ret) {
+  if (eprosima::fastdds::dds::RETCODE_OK != ret) {
     RCUTILS_SAFE_FWRITE_TO_STDERR("Failed to delete participant");
   }
 

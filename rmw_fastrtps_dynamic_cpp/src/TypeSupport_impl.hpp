@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RMW_FASTRTPS_DYNAMIC_CPP__TYPESUPPORT_IMPL_HPP_
-#define RMW_FASTRTPS_DYNAMIC_CPP__TYPESUPPORT_IMPL_HPP_
+#ifndef TYPESUPPORT_IMPL_HPP_
+#define TYPESUPPORT_IMPL_HPP_
 
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -23,13 +25,8 @@
 #include "fastcdr/FastBuffer.h"
 #include "fastcdr/exceptions/Exception.h"
 
-#include "rmw_fastrtps_dynamic_cpp/TypeSupport.hpp"
-#include "rmw_fastrtps_dynamic_cpp/macros.hpp"
-
 #include "rmw/error_handling.h"
 
-#include "rosidl_typesupport_fastrtps_c/wstring_conversion.hpp"
-#include "rosidl_typesupport_fastrtps_cpp/wstring_conversion.hpp"
 #include "rosidl_typesupport_introspection_cpp/field_types.hpp"
 #include "rosidl_typesupport_introspection_cpp/message_introspection.hpp"
 #include "rosidl_typesupport_introspection_cpp/service_introspection.hpp"
@@ -39,6 +36,9 @@
 
 #include "rosidl_runtime_c/primitives_sequence_functions.h"
 #include "rosidl_runtime_c/u16string_functions.h"
+
+#include "TypeSupport.hpp"
+#include "serialization_helpers.hpp"
 
 namespace rmw_fastrtps_dynamic_cpp
 {
@@ -51,12 +51,12 @@ static void check_sequence_size(
   const size_t size,
   eprosima::fastcdr::Cdr & deser)
 {
-  auto state = deser.getState();
+  auto state = deser.get_state();
   bool correct_size = deser.jump(size);
-  deser.setState(state);
+  deser.set_state(state);
   if (!correct_size) {
     throw eprosima::fastcdr::exception::NotEnoughMemoryException(
-            "Insufficent input buffer for sequence length");
+      "Insufficent input buffer for sequence length");
   }
 }
 
@@ -81,9 +81,21 @@ template<typename MembersType>
 TypeSupport<MembersType>::TypeSupport(const void * ros_type_support)
 : BaseTypeSupport(ros_type_support)
 {
-  m_isGetKeyDefined = false;
+  is_compute_key_provided = false;
   max_size_bound_ = false;
   is_plain_ = false;
+}
+
+template<typename MembersType>
+TypeSupport<MembersType>::TypeSupport(
+  const void * ros_type_support,
+  const void * ros_message_type_supports)
+: BaseTypeSupport(ros_type_support, ros_message_type_supports)
+{
+  is_compute_key_provided = false;
+  max_size_bound_ = false;
+  is_plain_ = false;
+  key_is_unbounded_ = false;
 }
 
 // C++ specialization
@@ -96,7 +108,7 @@ void serialize_field(
   if (!member->is_array_) {
     ser << *static_cast<T *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
-    ser.serializeArray(static_cast<T *>(field), member->array_size_);
+    ser.serialize_array(static_cast<T *>(field), member->array_size_);
   } else {
     std::vector<T> & data = *reinterpret_cast<std::vector<T> *>(field);
     ser << data;
@@ -110,11 +122,9 @@ void serialize_field<std::wstring>(
   void * field,
   eprosima::fastcdr::Cdr & ser)
 {
-  std::wstring wstr;
   if (!member->is_array_) {
     auto u16str = static_cast<std::u16string *>(field);
-    rosidl_typesupport_fastrtps_cpp::u16string_to_wstring(*u16str, wstr);
-    ser << wstr;
+    ser << *u16str;
   } else {
     size_t size;
     if (member->array_size_ && !member->is_upper_bound_) {
@@ -126,8 +136,7 @@ void serialize_field<std::wstring>(
     for (size_t i = 0; i < size; ++i) {
       const void * element = member->get_const_function(field, i);
       auto u16str = static_cast<const std::u16string *>(element);
-      rosidl_typesupport_fastrtps_cpp::u16string_to_wstring(*u16str, wstr);
-      ser << wstr;
+      ser << *u16str;
     }
   }
 }
@@ -142,10 +151,10 @@ void serialize_field(
   if (!member->is_array_) {
     ser << *static_cast<T *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
-    ser.serializeArray(static_cast<T *>(field), member->array_size_);
+    ser.serialize_array(static_cast<T *>(field), member->array_size_);
   } else {
     auto & data = *reinterpret_cast<typename GenericCSequence<T>::type *>(field);
-    ser.serializeSequence(reinterpret_cast<T *>(data.data), data.size);
+    ser.serialize_sequence(reinterpret_cast<T *>(data.data), data.size);
   }
 }
 
@@ -196,23 +205,19 @@ void serialize_field<std::wstring>(
   void * field,
   eprosima::fastcdr::Cdr & ser)
 {
-  std::wstring wstr;
   if (!member->is_array_) {
     auto u16str = static_cast<rosidl_runtime_c__U16String *>(field);
-    rosidl_typesupport_fastrtps_c::u16string_to_wstring(*u16str, wstr);
-    ser << wstr;
+    ser << *u16str;
   } else if (member->array_size_ && !member->is_upper_bound_) {
     auto array = static_cast<rosidl_runtime_c__U16String *>(field);
     for (size_t i = 0; i < member->array_size_; ++i) {
-      rosidl_typesupport_fastrtps_c::u16string_to_wstring(array[i], wstr);
-      ser << wstr;
+      ser << array[i];
     }
   } else {
     auto sequence = static_cast<rosidl_runtime_c__U16String__Sequence *>(field);
     ser << static_cast<uint32_t>(sequence->size);
     for (size_t i = 0; i < sequence->size; ++i) {
-      rosidl_typesupport_fastrtps_c::u16string_to_wstring(sequence->data[i], wstr);
-      ser << wstr;
+      ser << sequence->data[i];
     }
   }
 }
@@ -223,11 +228,35 @@ bool TypeSupport<MembersType>::serializeROSmessage(
   const MembersType * members,
   const void * ros_message) const
 {
+  return serializeROSmessage(ser, members, ros_message, false);
+}
+
+template<typename MembersType>
+bool TypeSupport<MembersType>::serializeKeyROSmessage(
+  eprosima::fastcdr::Cdr & ser,
+  const MembersType * members,
+  const void * ros_message) const
+{
+  return serializeROSmessage(ser, members, ros_message, true);
+}
+
+template<typename MembersType>
+bool TypeSupport<MembersType>::serializeROSmessage(
+  eprosima::fastcdr::Cdr & ser,
+  const MembersType * members,
+  const void * ros_message,
+  bool compute_key) const
+{
   assert(members);
   assert(ros_message);
 
   for (uint32_t i = 0; i < members->member_count_; ++i) {
     const auto member = members->members_ + i;
+
+    if (compute_key && !member->is_key_ && members->has_any_key_member_) {
+      continue;
+    }
+
     void * field = const_cast<char *>(static_cast<const char *>(ros_message)) + member->offset_;
     switch (member->type_id_) {
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BOOL:
@@ -281,7 +310,7 @@ bool TypeSupport<MembersType>::serializeROSmessage(
         {
           auto sub_members = static_cast<const MembersType *>(member->members_->data);
           if (!member->is_array_) {
-            serializeROSmessage(ser, sub_members, field);
+            serializeROSmessage(ser, sub_members, field, compute_key);
           } else {
             size_t array_size = 0;
 
@@ -303,13 +332,66 @@ bool TypeSupport<MembersType>::serializeROSmessage(
               return false;
             }
             for (size_t index = 0; index < array_size; ++index) {
-              serializeROSmessage(ser, sub_members, member->get_function(field, index));
+              serializeROSmessage(
+                ser, sub_members, member->get_function(field, index),
+                compute_key);
             }
           }
         }
         break;
       default:
         throw std::runtime_error("unknown type");
+    }
+  }
+
+  return true;
+}
+
+template<typename MembersType>
+bool TypeSupport<MembersType>::get_key_hash_from_ros_message(
+  const MembersType * members,
+  void * ros_message,
+  eprosima::fastdds::rtps::InstanceHandle_t * ihandle,
+  bool force_md5) const
+{
+  assert(members);
+  assert(ros_message);
+  assert(ihandle);
+
+  // get estimated serialized size in case key is unbounded
+  if (this->key_is_unbounded_) {
+    this->key_max_serialized_size_ =
+      (std::max) (this->key_max_serialized_size_,
+      this->getEstimatedSerializedKeySize(members, ros_message));
+    key_buffer_.reserve(this->key_max_serialized_size_);
+  }
+
+  eprosima::fastcdr::FastBuffer buffer(
+    reinterpret_cast<char *>(this->key_buffer_.data()),
+    this->key_max_serialized_size_);
+
+  eprosima::fastcdr::Cdr ser(
+    buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::CdrVersion::XCDRv1);
+
+  // serialize
+  serializeKeyROSmessage(ser, members_, ros_message);
+
+  // check for md5
+  if (force_md5 || this->key_max_serialized_size_ > 16) {
+    md5_.init();
+
+    md5_.update(
+      this->key_buffer_.data(),
+      static_cast<unsigned int>(ser.get_serialized_data_length()));
+
+    md5_.finalize();
+
+    for (uint8_t i = 0; i < 16; ++i) {
+      ihandle->value[i] = md5_.digest[i];
+    }
+  } else {
+    for (uint8_t i = 0; i < 16; ++i) {
+      ihandle->value[i] = this->key_buffer_[i];
     }
   }
 
@@ -352,17 +434,19 @@ size_t next_field_align_string(
   const size_t padding = 4;
   size_t character_size =
     (member->type_id_ == rosidl_typesupport_introspection_cpp::ROS_TYPE_WSTRING) ? 4 : 1;
+  size_t extra_char =
+    (member->type_id_ == rosidl_typesupport_introspection_cpp::ROS_TYPE_WSTRING) ? 0 : 1;
   if (!member->is_array_) {
     current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
     current_alignment += padding;
     auto & str = *static_cast<T *>(field);
-    current_alignment += character_size * (str.size() + 1);
+    current_alignment += character_size * (str.size() + extra_char);
   } else if (member->array_size_ && !member->is_upper_bound_) {
     auto str_arr = static_cast<T *>(field);
     for (size_t index = 0; index < member->array_size_; ++index) {
       current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
       current_alignment += padding;
-      current_alignment += character_size * (str_arr[index].size() + 1);
+      current_alignment += character_size * (str_arr[index].size() + extra_char);
     }
   } else {
     auto & data = *reinterpret_cast<std::vector<T> *>(field);
@@ -371,7 +455,7 @@ size_t next_field_align_string(
     for (auto & it : data) {
       current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
       current_alignment += padding;
-      current_alignment += character_size * (it.size() + 1);
+      current_alignment += character_size * (it.size() + extra_char);
     }
   }
   return current_alignment;
@@ -454,14 +538,14 @@ size_t next_field_align_string<std::wstring>(
     auto u16str = static_cast<rosidl_runtime_c__U16String *>(field);
     current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
     current_alignment += padding;
-    current_alignment += 4 * (u16str->size + 1);
+    current_alignment += 4 * (u16str->size);
   } else {
     if (member->array_size_ && !member->is_upper_bound_) {
       auto string_field = static_cast<rosidl_runtime_c__U16String *>(field);
       for (size_t i = 0; i < member->array_size_; ++i) {
         current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
         current_alignment += padding;
-        current_alignment += 4 * (string_field[i].size + 1);
+        current_alignment += 4 * (string_field[i].size);
       }
     } else {
       current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
@@ -471,7 +555,7 @@ size_t next_field_align_string<std::wstring>(
       for (size_t i = 0; i < string_sequence_field.size; ++i) {
         current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
         current_alignment += padding;
-        current_alignment += 4 * (string_sequence_field.data[i].size + 1);
+        current_alignment += 4 * (string_sequence_field.data[i].size);
       }
     }
   }
@@ -484,6 +568,24 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
   const void * ros_message,
   size_t current_alignment) const
 {
+  return getEstimatedSerializedSize(members, ros_message, current_alignment, false);
+}
+
+template<typename MembersType>
+size_t TypeSupport<MembersType>::getEstimatedSerializedKeySize(
+  const MembersType * members,
+  const void * ros_message) const
+{
+  return getEstimatedSerializedSize(members, ros_message, 0, true);
+}
+
+template<typename MembersType>
+size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
+  const MembersType * members,
+  const void * ros_message,
+  size_t current_alignment,
+  bool compute_key) const
+{
   assert(members);
   assert(ros_message);
 
@@ -492,6 +594,11 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
   for (uint32_t i = 0; i < members->member_count_; ++i) {
     const auto member = members->members_ + i;
     void * field = const_cast<char *>(static_cast<const char *>(ros_message)) + member->offset_;
+
+    if (compute_key && !member->is_key_ && members->has_any_key_member_) {
+      continue;
+    }
+
     switch (member->type_id_) {
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BOOL:
         current_alignment = next_field_align<bool>(member, field, current_alignment);
@@ -538,7 +645,9 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
         {
           auto sub_members = static_cast<const MembersType *>(member->members_->data);
           if (!member->is_array_) {
-            current_alignment += getEstimatedSerializedSize(sub_members, field, current_alignment);
+            current_alignment += getEstimatedSerializedSize(
+              sub_members, field, current_alignment,
+              compute_key);
           } else {
             size_t array_size = 0;
 
@@ -563,7 +672,8 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
               current_alignment += getEstimatedSerializedSize(
                 sub_members,
                 member->get_function(field, index),
-                current_alignment);
+                current_alignment,
+                compute_key);
             }
           }
         }
@@ -585,7 +695,7 @@ void deserialize_field(
   if (!member->is_array_) {
     deser >> *static_cast<T *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
-    deser.deserializeArray(static_cast<T *>(field), member->array_size_);
+    deser.deserialize_array(static_cast<T *>(field), member->array_size_);
   } else {
     auto & vector = *reinterpret_cast<std::vector<T> *>(field);
     deser >> vector;
@@ -602,7 +712,7 @@ inline void deserialize_field<std::string>(
     deser >> *static_cast<std::string *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
     std::string * array = static_cast<std::string *>(field);
-    deser.deserializeArray(array, member->array_size_);
+    deser.deserialize_array(array, member->array_size_);
   } else {
     auto & vector = *reinterpret_cast<std::vector<std::string> *>(field);
     deser >> vector;
@@ -615,11 +725,8 @@ inline void deserialize_field<std::wstring>(
   void * field,
   eprosima::fastcdr::Cdr & deser)
 {
-  std::wstring wstr;
   if (!member->is_array_) {
-    deser >> wstr;
-    rosidl_typesupport_fastrtps_cpp::wstring_to_u16string(
-      wstr, *static_cast<std::u16string *>(field));
+    deser >> *static_cast<std::u16string *>(field);
   } else {
     uint32_t size;
     if (member->array_size_ && !member->is_upper_bound_) {
@@ -632,8 +739,7 @@ inline void deserialize_field<std::wstring>(
     for (size_t i = 0; i < size; ++i) {
       void * element = member->get_function(field, i);
       auto u16str = static_cast<std::u16string *>(element);
-      deser >> wstr;
-      rosidl_typesupport_fastrtps_cpp::wstring_to_u16string(wstr, *u16str);
+      deser >> *u16str;
     }
   }
 }
@@ -647,14 +753,14 @@ void deserialize_field(
   if (!member->is_array_) {
     deser >> *static_cast<T *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
-    deser.deserializeArray(static_cast<T *>(field), member->array_size_);
+    deser.deserialize_array(static_cast<T *>(field), member->array_size_);
   } else {
     auto & data = *reinterpret_cast<typename GenericCSequence<T>::type *>(field);
     int32_t dsize = 0;
     deser >> dsize;
     check_sequence_size(dsize, deser);
     GenericCSequence<T>::init(&data, dsize);
-    deser.deserializeArray(reinterpret_cast<T *>(data.data), dsize);
+    deser.deserialize_array(reinterpret_cast<T *>(data.data), dsize);
   }
 }
 
@@ -710,16 +816,12 @@ inline void deserialize_field<std::wstring>(
   void * field,
   eprosima::fastcdr::Cdr & deser)
 {
-  std::wstring wstr;
   if (!member->is_array_) {
-    deser >> wstr;
-    rosidl_typesupport_fastrtps_c::wstring_to_u16string(
-      wstr, *static_cast<rosidl_runtime_c__U16String *>(field));
+    deser >> *static_cast<rosidl_runtime_c__U16String *>(field);
   } else if (member->array_size_ && !member->is_upper_bound_) {
     auto array = static_cast<rosidl_runtime_c__U16String *>(field);
     for (size_t i = 0; i < member->array_size_; ++i) {
-      deser >> wstr;
-      rosidl_typesupport_fastrtps_c::wstring_to_u16string(wstr, array[i]);
+      deser >> array[i];
     }
   } else {
     uint32_t size;
@@ -729,8 +831,7 @@ inline void deserialize_field<std::wstring>(
       throw std::runtime_error("unable to initialize rosidl_runtime_c__U16String sequence");
     }
     for (size_t i = 0; i < sequence->size; ++i) {
-      deser >> wstr;
-      rosidl_typesupport_fastrtps_c::wstring_to_u16string(wstr, sequence->data[i]);
+      deser >> sequence->data[i];
     }
   }
 }
@@ -838,6 +939,24 @@ template<typename MembersType>
 size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
   const MembersType * members, size_t current_alignment)
 {
+  bool is_key_unbounded{false};  // unused
+  return calculateMaxSerializedSize(members, current_alignment, false, is_key_unbounded);
+}
+
+template<typename MembersType>
+size_t TypeSupport<MembersType>::calculateMaxSerializedKeySize(
+  const MembersType * members)
+{
+  return calculateMaxSerializedSize(members, 0, true, this->key_is_unbounded_);
+}
+
+template<typename MembersType>
+size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
+  const MembersType * members,
+  size_t current_alignment,
+  bool compute_key,
+  bool & is_key_unbounded)
+{
   assert(members);
 
   size_t initial_alignment = current_alignment;
@@ -849,6 +968,11 @@ size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
     const auto * member = members->members_ + i;
 
     size_t array_size = 1;
+
+    if (compute_key && !member->is_key_ && members->has_any_key_member_) {
+      continue;
+    }
+
     if (member->is_array_) {
       array_size = member->array_size_;
 
@@ -900,12 +1024,19 @@ size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
         {
           this->max_size_bound_ = false;
           this->is_plain_ = false;
+
+          if (compute_key) {
+            is_key_unbounded = true;
+          }
+
           size_t character_size =
             (member->type_id_ == rosidl_typesupport_introspection_cpp::ROS_TYPE_WSTRING) ? 4 : 1;
+          size_t extra_char =
+            (member->type_id_ == rosidl_typesupport_introspection_cpp::ROS_TYPE_WSTRING) ? 0 : 1;
           for (size_t index = 0; index < array_size; ++index) {
             current_alignment += padding +
               eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +
-              character_size * (member->string_upper_bound_ + 1);
+              character_size * (member->string_upper_bound_ + extra_char);
           }
         }
         break;
@@ -913,7 +1044,9 @@ size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
         {
           auto sub_members = static_cast<const MembersType *>(member->members_->data);
           for (size_t index = 0; index < array_size; ++index) {
-            size_t curr = calculateMaxSerializedSize(sub_members, current_alignment);
+            size_t curr = calculateMaxSerializedSize(
+              sub_members, current_alignment, compute_key,
+              is_key_unbounded);
             current_alignment += curr;
             last_member_size += curr;
           }
@@ -940,7 +1073,7 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
   const void * ros_message, const void * impl) const
 {
   if (is_plain_) {
-    return m_typeSize;
+    return max_serialized_type_size;
   }
 
   assert(ros_message);
@@ -1001,18 +1134,39 @@ bool TypeSupport<MembersType>::deserializeROSmessage(
   } catch (const eprosima::fastcdr::exception::Exception &) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
       "Fast CDR exception deserializing message of type %s.",
-      getName());
+      get_name().c_str());
     return false;
   } catch (const std::bad_alloc &) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
       "'Bad alloc' exception deserializing message of type %s.",
-      getName());
+      get_name().c_str());
     return false;
   }
 
   return true;
 }
 
+template<typename MembersType>
+bool TypeSupport<MembersType>::get_key_hash_from_ros_message(
+  void * ros_message,
+  eprosima::fastdds::rtps::InstanceHandle_t * ihandle,
+  bool force_md5,
+  const void * impl) const
+{
+  assert(ros_message);
+  assert(ihandle);
+  assert(members_);
+
+  bool ret = false;
+
+  (void)impl;
+  if (members_->member_count_ != 0) {
+    ret = TypeSupport::get_key_hash_from_ros_message(members_, ros_message, ihandle, force_md5);
+  }
+
+  return ret;
+}
+
 }  // namespace rmw_fastrtps_dynamic_cpp
 
-#endif  // RMW_FASTRTPS_DYNAMIC_CPP__TYPESUPPORT_IMPL_HPP_
+#endif  // TYPESUPPORT_IMPL_HPP_
