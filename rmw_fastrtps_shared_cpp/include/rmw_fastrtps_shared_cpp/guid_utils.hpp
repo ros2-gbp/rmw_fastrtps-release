@@ -18,12 +18,9 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <string>
 #include <type_traits>
 
 #include "fastdds/rtps/common/Guid.hpp"
-
-#include "rmw/types.h"
 
 namespace rmw_fastrtps_shared_cpp
 {
@@ -88,19 +85,6 @@ struct hash_fastdds_guid
     return ret_val;
   }
 };
-
-inline std::string
-gid_to_hex(const rmw_gid_t & gid, size_t bytes = RMW_GID_STORAGE_SIZE)
-{
-  static const char hex_chars[] = "0123456789abcdef";
-  std::string result;
-  result.reserve(bytes * 2);
-  for (size_t i = 0; i < bytes && i < RMW_GID_STORAGE_SIZE; ++i) {
-    result += hex_chars[(gid.data[i] >> 4) & 0xF];
-    result += hex_chars[gid.data[i] & 0xF];
-  }
-  return result;
-}
 
 }  // namespace rmw_fastrtps_shared_cpp
 
