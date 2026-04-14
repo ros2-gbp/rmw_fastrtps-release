@@ -2,15 +2,45 @@
 Changelog for package rmw_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.3.4 (2026-04-09)
+9.4.7 (2026-04-14)
 ------------------
-* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_) (`#856 <https://github.com/ros2/rmw_fastrtps/issues/856>`_)
-* Contributors: mergify[bot]
 
-9.3.3 (2025-09-24)
+* Remove warning when compiling with ``lcang`` (`#876 <https://github.com/ros2/rmw_fastrtps/issues/876>`_)
+
+* Contributors: Alejandro Hernández Cordero
+
+9.4.6 (2026-04-09)
 ------------------
-* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_) (`#832 <https://github.com/ros2/rmw_fastrtps/issues/832>`_)
-* Contributors: mergify[bot]
+* Add support for rosidl::Buffer-aware per-endpoint pub/sub (`#867 <https://github.com/ros2/rmw_fastrtps/issues/867>`_)
+* Contributors: CY Chen
+
+9.4.5 (2026-03-30)
+------------------
+* Use new aggregate rosidl target instead of _TARGETS (`#870 <https://github.com/ros2/rmw_fastrtps/issues/870>`_)
+* Enable content filtering flag (`#869 <https://github.com/ros2/rmw_fastrtps/issues/869>`_)
+* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_)
+* Contributors: Alexis Tsogias, Barry Xu, Tomoya Fujita
+
+9.4.4 (2025-11-18)
+------------------
+* add : get clients, servers info (`#771 <https://github.com/ros2/rmw_fastrtps/issues/771>`_)
+* Contributors: Minju, Lee
+
+9.4.3 (2025-10-20)
+------------------
+* Do not include rosidl_typesupport\_{c,cpp} in rmw impl typesupport list (`#843 <https://github.com/ros2/rmw_fastrtps/issues/843>`_)
+* Contributors: Christophe Bedard
+
+9.4.2 (2025-07-29)
+------------------
+
+9.4.1 (2025-07-01)
+------------------
+* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
+* Contributors: mosfet80
+
+9.4.0 (2025-04-25)
+------------------
 
 9.3.2 (2025-04-18)
 ------------------

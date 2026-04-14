@@ -47,8 +47,11 @@ find_package(rosidl_dynamic_typesupport_fastrtps REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
+find_package(rosidl_buffer_backend_registry REQUIRED)
 
 add_library(rmw_fastrtps_cpp
+  src/buffer_backend_loader.cpp
+  src/buffer_endpoint_registry.cpp
   src/get_client.cpp
   src/get_participant.cpp
   src/get_publisher.cpp
@@ -68,6 +71,7 @@ add_library(rmw_fastrtps_cpp
   src/rmw_get_gid_for_publisher.cpp
   src/rmw_get_implementation_identifier.cpp
   src/rmw_get_serialization_format.cpp
+  src/rmw_get_service_endpoint_info.cpp
   src/rmw_get_topic_endpoint_info.cpp
   src/rmw_guard_condition.cpp
   src/rmw_init.cpp
@@ -105,11 +109,16 @@ target_link_libraries(rmw_fastrtps_cpp PUBLIC
 target_link_libraries(rmw_fastrtps_cpp PRIVATE
   rcpputils::rcpputils
   rcutils::rcutils
+  rosidl_buffer_backend_registry::rosidl_buffer_backend_registry
   rmw_dds_common::rmw_dds_common_library
   rosidl_dynamic_typesupport::rosidl_dynamic_typesupport
   rosidl_dynamic_typesupport_fastrtps::rosidl_dynamic_typesupport_fastrtps
   rosidl_typesupport_fastrtps_c::rosidl_typesupport_fastrtps_c
   tracetools::tracetools
+)
+
+target_include_directories(rmw_fastrtps_cpp PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories(rmw_fastrtps_cpp PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
@@ -131,8 +140,8 @@ ament_export_targets(rmw_fastrtps_cpp)
 ament_export_dependencies(fastcdr rmw rmw_fastrtps_shared_cpp rosidl_runtime_c rosidl_typesupport_fastrtps_cpp)
 
 register_rmw_implementation(
-  "c:rosidl_typesupport_c:rosidl_typesupport_fastrtps_c:rosidl_typesupport_introspection_c"
-  "cpp:rosidl_typesupport_cpp:rosidl_typesupport_fastrtps_cpp:rosidl_typesupport_introspection_cpp")
+  "c:rosidl_typesupport_fastrtps_c:rosidl_typesupport_introspection_c"
+  "cpp:rosidl_typesupport_fastrtps_cpp:rosidl_typesupport_introspection_cpp")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -149,7 +158,7 @@ if(BUILD_TESTING)
     rcutils::rcutils
     rmw::rmw
     rmw_fastrtps_cpp
-    ${test_msgs_TARGETS}
+    test_msgs::test_msgs
   )
 
   ament_add_gtest(test_logging test/test_logging.cpp)

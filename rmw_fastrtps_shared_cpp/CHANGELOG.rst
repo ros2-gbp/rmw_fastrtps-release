@@ -2,18 +2,40 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.3.4 (2026-04-09)
+9.4.6 (2026-04-09)
 ------------------
-* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_) (`#856 <https://github.com/ros2/rmw_fastrtps/issues/856>`_)
-* Refs `#23861 <https://github.com/ros2/rmw_fastrtps/issues/23861>`_. Use key annotation in TypeObject build (`#849 <https://github.com/ros2/rmw_fastrtps/issues/849>`_) (`#851 <https://github.com/ros2/rmw_fastrtps/issues/851>`_)
-* Contributors: mergify[bot]
+* feat: set collection header element_flags TryConstructFailAction::DISCARD instead of 0 (`#875 <https://github.com/ros2/rmw_fastrtps/issues/875>`_)
+* Add support for rosidl::Buffer-aware per-endpoint pub/sub (`#867 <https://github.com/ros2/rmw_fastrtps/issues/867>`_)
+* Added rmw_take tracepoint, because it wasn't being triggered for successful takes (`#871 <https://github.com/ros2/rmw_fastrtps/issues/871>`_)
+* Contributors: CY Chen, Daisuke Nishimatsu, Oren Bell
 
-9.3.3 (2025-09-24)
+9.4.5 (2026-03-30)
 ------------------
-* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_) (`#832 <https://github.com/ros2/rmw_fastrtps/issues/832>`_)
-* Retrieve `HistoryQoS` in discovery when available (`#829 <https://github.com/ros2/rmw_fastrtps/issues/829>`_) (`#830 <https://github.com/ros2/rmw_fastrtps/issues/830>`_)
-* check a local publication to ignore with serialized message. (`#823 <https://github.com/ros2/rmw_fastrtps/issues/823>`_) (`#824 <https://github.com/ros2/rmw_fastrtps/issues/824>`_)
-* Contributors: mergify[bot]
+* Added tracepoint to loaned take (`#868 <https://github.com/ros2/rmw_fastrtps/issues/868>`_)
+* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_)
+* Contributors: Oren Bell PhD, Tomoya Fujita
+
+9.4.4 (2025-11-18)
+------------------
+* add : get clients, servers info (`#771 <https://github.com/ros2/rmw_fastrtps/issues/771>`_)
+* Refs `#23861 <https://github.com/ros2/rmw_fastrtps/issues/23861>`_. Use key annotation in TypeObject build (`#849 <https://github.com/ros2/rmw_fastrtps/issues/849>`_)
+* Contributors: Miguel Company, Minju, Lee
+
+9.4.3 (2025-10-20)
+------------------
+
+9.4.2 (2025-07-29)
+------------------
+
+9.4.1 (2025-07-01)
+------------------
+* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
+* Retrieve `HistoryQoS` in discovery when available (`#829 <https://github.com/ros2/rmw_fastrtps/issues/829>`_)
+* check a local publication to ignore with serialized message. (`#823 <https://github.com/ros2/rmw_fastrtps/issues/823>`_)
+* Contributors: Mario Domínguez López, Tomoya Fujita, mosfet80
+
+9.4.0 (2025-04-25)
+------------------
 
 9.3.2 (2025-04-18)
 ------------------
