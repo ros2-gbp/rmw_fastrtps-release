@@ -1,0 +1,12 @@
+Source: ros-lyrical-rmw-fastrtps-shared-cpp
+Section: misc
+Priority: optional
+Maintainer: Geoffrey Biggs <geoff@openrobotics.org>
+Build-Depends: debhelper (>= 9.0.0), ros-lyrical-ament-cmake-gmock <!nocheck>, ros-lyrical-ament-cmake-gtest <!nocheck>, ros-lyrical-ament-cmake-ros-core, ros-lyrical-ament-lint-auto <!nocheck>, ros-lyrical-ament-lint-common <!nocheck>, ros-lyrical-fastcdr, ros-lyrical-fastdds, ros-lyrical-osrf-testing-tools-cpp <!nocheck>, ros-lyrical-rcpputils, ros-lyrical-rcutils, ros-lyrical-rmw, ros-lyrical-rmw-dds-common, ros-lyrical-rmw-security-common, ros-lyrical-rosidl-buffer-backend-registry, ros-lyrical-rosidl-dynamic-typesupport, ros-lyrical-rosidl-runtime-c, ros-lyrical-rosidl-typesupport-introspection-c, ros-lyrical-rosidl-typesupport-introspection-cpp, ros-lyrical-tracetools, ros-lyrical-ros-workspace
+Homepage: https://index.ros.org/p/rmw_fastrtps_shared_cpp/#lyrical
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-rmw-fastrtps-shared-cpp
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-lyrical-fastcdr, ros-lyrical-fastdds, ros-lyrical-rcpputils, ros-lyrical-rcutils, ros-lyrical-rmw, ros-lyrical-rmw-dds-common, ros-lyrical-rmw-security-common, ros-lyrical-rosidl-dynamic-typesupport, ros-lyrical-rosidl-typesupport-introspection-c, ros-lyrical-rosidl-typesupport-introspection-cpp, ros-lyrical-tracetools, ros-lyrical-ros-workspace
+Description: Code shared on static and dynamic type support of rmw_fastrtps_cpp.
