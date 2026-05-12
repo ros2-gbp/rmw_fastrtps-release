@@ -2,13 +2,10 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.5.1 (2026-05-13)
+9.4.8 (2026-05-13)
 ------------------
-
-9.5.0 (2026-05-07)
-------------------
-* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps/issues/879>`_)
-* Contributors: Chris Lalancette
+* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps//issues/879>`_) (`#882 <https://github.com/ros2/rmw_fastrtps//issues/882>`_)
+* Contributors: mergify[bot]
 
 9.4.6 (2026-04-09)
 ------------------
