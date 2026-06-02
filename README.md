@@ -1,3 +1,29 @@
+## rmw_fastrtps (jazzy) - 8.4.4-1
+
+The packages in the `rmw_fastrtps` repository were released into the `jazzy` distro by running `/usr/bin/bloom-release --track jazzy --rosdistro jazzy rmw_fastrtps` on `Tue, 02 Jun 2026 07:29:16 -0000`
+
+These packages were released:
+- `rmw_fastrtps_cpp`
+- `rmw_fastrtps_dynamic_cpp`
+- `rmw_fastrtps_shared_cpp`
+
+Version of package(s) in repository `rmw_fastrtps`:
+
+- upstream repository: https://github.com/ros2/rmw_fastrtps.git
+- release repository: https://github.com/ros2-gbp/rmw_fastrtps-release.git
+- rosdistro version: `8.4.3-1`
+- old version: `8.4.3-1`
+- new version: `8.4.4-1`
+
+Versions of tools used:
+
+- bloom version: `0.13.0`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## rmw_fastrtps (lyrical) - 9.4.8-1
 
 The packages in the `rmw_fastrtps` repository were released into the `lyrical` distro by running `/usr/bin/bloom-release --rosdistro lyrical --track lyrical rmw_fastrtps` on `Tue, 12 May 2026 22:16:54 -0000`
