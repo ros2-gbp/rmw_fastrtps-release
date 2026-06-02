@@ -16,15 +16,12 @@
 #ifndef RMW_FASTRTPS_SHARED_CPP__QOS_HPP_
 #define RMW_FASTRTPS_SHARED_CPP__QOS_HPP_
 
-#include <string>
-#include <unordered_map>
-
 #include <fastdds/dds/core/policy/QosPolicies.hpp>
-
-#include "rmw/types.h"
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 #include <fastdds/dds/topic/qos/TopicQos.hpp>
+
+#include "fastrtps/qos/QosPolicies.h"
 
 #include "rmw/rmw.h"
 
@@ -41,41 +38,14 @@ bool
 get_datareader_qos(
   const rmw_qos_profile_t & qos_policies,
   const rosidl_type_hash_t & type_hash,
-  eprosima::fastdds::dds::DataReaderQos & reader_qos,
-  const rosidl_type_hash_t * ser_type_hash = nullptr,
-  const std::unordered_map<std::string, std::string> * buffer_backends = nullptr);
+  eprosima::fastdds::dds::DataReaderQos & reader_qos);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
 get_datawriter_qos(
   const rmw_qos_profile_t & qos_policies,
   const rosidl_type_hash_t & type_hash,
-  eprosima::fastdds::dds::DataWriterQos & writer_qos,
-  const rosidl_type_hash_t * ser_type_hash = nullptr,
-  const std::unordered_map<std::string, std::string> * buffer_backends = nullptr);
-
-/// Encode buffer backend info as a string for inclusion in DDS user_data.
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-std::string
-encode_buffer_backends_for_user_data(
-  const std::unordered_map<std::string, std::string> & backends);
-
-/// Parse buffer backend info from DDS user_data bytes.
-/// Returns empty map if the sentinel prefix is not found.
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-std::unordered_map<std::string, std::string>
-parse_buffer_backends_from_user_data(const uint8_t * data, size_t size);
-
-/// Encode a GID with a sentinel tag for inclusion in DDS user_data.
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-std::string
-encode_endpoint_gid_for_user_data(const rmw_gid_t & gid, const char * tag);
-
-/// Parse a GID with the given sentinel tag from DDS user_data bytes.
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-bool
-parse_endpoint_gid_from_user_data(
-  const uint8_t * data, size_t size, const char * tag, rmw_gid_t & gid);
+  eprosima::fastdds::dds::DataWriterQos & writer_qos);
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
@@ -85,7 +55,7 @@ get_topic_qos(
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 rmw_time_t
-dds_duration_to_rmw(const eprosima::fastdds::dds::Duration_t & duration);
+dds_duration_to_rmw(const eprosima::fastrtps::Duration_t & duration);
 
 /*
  * Converts the DDS QOS Policy; of type DataWriterQos or DataReaderQos into rmw_qos_profile_t.
@@ -162,17 +132,17 @@ dds_qos_to_rmw_qos(
  * \param[in] rtps_qos of type WriterQos or ReaderQos
  * \param[out] qos the equivalent of the data in rtps_qos as a rmw_qos_profile_t
  */
-template<typename BuiltinData>
+template<typename RTPSQoSPolicyT>
 void
 rtps_qos_to_rmw_qos(
-  const BuiltinData & rtps_qos,
+  const RTPSQoSPolicyT & rtps_qos,
   rmw_qos_profile_t * qos)
 {
-  switch (rtps_qos.reliability.kind) {
-    case eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS:
+  switch (rtps_qos.m_reliability.kind) {
+    case eprosima::fastrtps::BEST_EFFORT_RELIABILITY_QOS:
       qos->reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
       break;
-    case eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS:
+    case eprosima::fastrtps::RELIABLE_RELIABILITY_QOS:
       qos->reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
       break;
     default:
@@ -180,11 +150,11 @@ rtps_qos_to_rmw_qos(
       break;
   }
 
-  switch (rtps_qos.durability.kind) {
-    case eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS:
+  switch (rtps_qos.m_durability.kind) {
+    case eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS:
       qos->durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
       break;
-    case eprosima::fastdds::dds::VOLATILE_DURABILITY_QOS:
+    case eprosima::fastrtps::VOLATILE_DURABILITY_QOS:
       qos->durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
       break;
     default:
@@ -192,38 +162,21 @@ rtps_qos_to_rmw_qos(
       break;
   }
 
-  qos->deadline = dds_duration_to_rmw(rtps_qos.deadline.period);
-  qos->lifespan = dds_duration_to_rmw(rtps_qos.lifespan.duration);
+  qos->deadline = dds_duration_to_rmw(rtps_qos.m_deadline.period);
+  qos->lifespan = dds_duration_to_rmw(rtps_qos.m_lifespan.duration);
 
-  switch (rtps_qos.liveliness.kind) {
-    case eprosima::fastdds::dds::AUTOMATIC_LIVELINESS_QOS:
+  switch (rtps_qos.m_liveliness.kind) {
+    case eprosima::fastrtps::AUTOMATIC_LIVELINESS_QOS:
       qos->liveliness = RMW_QOS_POLICY_LIVELINESS_AUTOMATIC;
       break;
-    case eprosima::fastdds::dds::MANUAL_BY_TOPIC_LIVELINESS_QOS:
+    case eprosima::fastrtps::MANUAL_BY_TOPIC_LIVELINESS_QOS:
       qos->liveliness = RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC;
       break;
     default:
       qos->liveliness = RMW_QOS_POLICY_LIVELINESS_UNKNOWN;
       break;
   }
-  qos->liveliness_lease_duration = dds_duration_to_rmw(rtps_qos.liveliness.lease_duration);
-
-  if (rtps_qos.history.has_value()) {
-    switch (rtps_qos.history->kind) {
-      case eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS:
-        qos->history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-        break;
-      case eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS:
-        qos->history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
-        break;
-      default:
-        qos->history = RMW_QOS_POLICY_HISTORY_UNKNOWN;
-        break;
-    }
-    qos->depth = static_cast<size_t>(rtps_qos.history->depth);
-  } else {
-    qos->history = RMW_QOS_POLICY_HISTORY_UNKNOWN;
-  }
+  qos->liveliness_lease_duration = dds_duration_to_rmw(rtps_qos.m_liveliness.lease_duration);
 }
 
 extern template RMW_FASTRTPS_SHARED_CPP_PUBLIC
@@ -234,6 +187,25 @@ void dds_qos_to_rmw_qos<eprosima::fastdds::dds::DataWriterQos>(
 extern template RMW_FASTRTPS_SHARED_CPP_PUBLIC
 void dds_qos_to_rmw_qos<eprosima::fastdds::dds::DataReaderQos>(
   const eprosima::fastdds::dds::DataReaderQos & dds_qos,
+  rmw_qos_profile_t * qos);
+
+
+template<typename AttributeT>
+void
+dds_attributes_to_rmw_qos(
+  const AttributeT & dds_qos,
+  rmw_qos_profile_t * qos);
+
+extern template RMW_FASTRTPS_SHARED_CPP_PUBLIC
+void
+dds_attributes_to_rmw_qos<eprosima::fastrtps::PublisherAttributes>(
+  const eprosima::fastrtps::PublisherAttributes & dds_qos,
+  rmw_qos_profile_t * qos);
+
+extern template RMW_FASTRTPS_SHARED_CPP_PUBLIC
+void
+dds_attributes_to_rmw_qos<eprosima::fastrtps::SubscriberAttributes>(
+  const eprosima::fastrtps::SubscriberAttributes & dds_qos,
   rmw_qos_profile_t * qos);
 
 #endif  // RMW_FASTRTPS_SHARED_CPP__QOS_HPP_

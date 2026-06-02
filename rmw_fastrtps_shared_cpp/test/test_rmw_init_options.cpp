@@ -159,9 +159,8 @@ TEST(RMWInitOptionsTest, copy) {
     rcutils_reset_error();
   });
   preset_options.instance_id = 23lu;
-  ASSERT_EQ(RMW_RET_OK, rmw_enclave_options_copy("/test", &allocator, &preset_options.enclave)) <<
-    rcutils_get_error_string().str;
-  ASSERT_STREQ("/test", preset_options.enclave);
+  preset_options.enclave = rcutils_strdup("/test", allocator);
+  ASSERT_TRUE(preset_options.enclave != nullptr);
   preset_options.security_options.security_root_path = rcutils_strdup("/root", allocator);
   ASSERT_TRUE(preset_options.security_options.security_root_path != nullptr);
 
@@ -191,7 +190,6 @@ static void * failing_allocate(size_t size, void * state)
 TEST(RMWInitOptionsTest, bad_alloc_on_copy) {
   rcutils_allocator_t failing_allocator = rcutils_get_default_allocator();
   failing_allocator.allocate = failing_allocate;
-  rcutils_allocator_t allocator = rcutils_get_default_allocator();
 
   rmw_init_options_t preset_options = rmw_get_zero_initialized_init_options();
   ASSERT_EQ(
@@ -205,10 +203,8 @@ TEST(RMWInitOptionsTest, bad_alloc_on_copy) {
       rcutils_get_error_string().str;
     rcutils_reset_error();
   });
-  ASSERT_EQ(RMW_RET_OK,
-    rmw_enclave_options_copy("/test", &allocator, &preset_options.enclave)) <<
-    rcutils_get_error_string().str;
-  ASSERT_STREQ("/test", preset_options.enclave);
+  preset_options.enclave = rcutils_strdup("/test", rcutils_get_default_allocator());
+  ASSERT_TRUE(preset_options.enclave != nullptr);
 
   rmw_init_options_t options = rmw_get_zero_initialized_init_options();
   EXPECT_EQ(

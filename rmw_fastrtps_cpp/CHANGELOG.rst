@@ -2,99 +2,22 @@
 Changelog for package rmw_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.4.8 (2026-05-13)
+8.4.4 (2026-06-02)
 ------------------
-* Clean up logs for the rosidl::Buffer path (`#886 <https://github.com/ros2/rmw_fastrtps//issues/886>`_) (`#887 <https://github.com/ros2/rmw_fastrtps//issues/887>`_)
-* Change the buffer-aware BUFBE: -> bufbe. (backport `#880 <https://github.com/ros2/rmw_fastrtps//issues/880>`_) (`#884 <https://github.com/ros2/rmw_fastrtps//issues/884>`_)
-* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps//issues/879>`_) (`#882 <https://github.com/ros2/rmw_fastrtps//issues/882>`_)
+* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_) (`#857 <https://github.com/ros2/rmw_fastrtps/issues/857>`_)
+  (cherry picked from commit 19f2e7fe0ce2e77b80c6bc2b7b9a7471c54f14d3)
+  Co-authored-by: Tomoya Fujita <Tomoya.Fujita@sony.com>
 * Contributors: mergify[bot]
 
-9.4.7 (2026-04-14)
+8.4.3 (2025-08-14)
 ------------------
 
-* Remove warning when compiling with ``lcang`` (`#876 <https://github.com/ros2/rmw_fastrtps/issues/876>`_)
-
-* Contributors: Alejandro Hernández Cordero
-
-9.4.6 (2026-04-09)
+8.4.2 (2025-03-12)
 ------------------
-* Add support for rosidl::Buffer-aware per-endpoint pub/sub (`#867 <https://github.com/ros2/rmw_fastrtps/issues/867>`_)
-* Contributors: CY Chen
+* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_) (`#813 <https://github.com/ros2/rmw_fastrtps/issues/813>`_)
+* Contributors: mergify[bot]
 
-9.4.5 (2026-03-30)
-------------------
-* Use new aggregate rosidl target instead of _TARGETS (`#870 <https://github.com/ros2/rmw_fastrtps/issues/870>`_)
-* Enable content filtering flag (`#869 <https://github.com/ros2/rmw_fastrtps/issues/869>`_)
-* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_)
-* Contributors: Alexis Tsogias, Barry Xu, Tomoya Fujita
-
-9.4.4 (2025-11-18)
-------------------
-* add : get clients, servers info (`#771 <https://github.com/ros2/rmw_fastrtps/issues/771>`_)
-* Contributors: Minju, Lee
-
-9.4.3 (2025-10-20)
-------------------
-* Do not include rosidl_typesupport\_{c,cpp} in rmw impl typesupport list (`#843 <https://github.com/ros2/rmw_fastrtps/issues/843>`_)
-* Contributors: Christophe Bedard
-
-9.4.2 (2025-07-29)
-------------------
-
-9.4.1 (2025-07-01)
-------------------
-* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
-* Contributors: mosfet80
-
-9.4.0 (2025-04-25)
-------------------
-
-9.3.2 (2025-04-18)
-------------------
-* Address RHEL warnings and missing includes. (`#819 <https://github.com/ros2/rmw_fastrtps/issues/819>`_)
-* Support topic instances (`#753 <https://github.com/ros2/rmw_fastrtps/issues/753>`_)
-* Switch to ament_cmake_ros_core package (`#818 <https://github.com/ros2/rmw_fastrtps/issues/818>`_)
-* Contributors: Miguel Company, Scott K Logan, Tomoya Fujita
-
-9.3.1 (2025-03-11)
-------------------
-* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_)
-* use rmw_enclave_options_xxx APIs instead. (`#808 <https://github.com/ros2/rmw_fastrtps/issues/808>`_)
-* Contributors: Alejandro Hernández Cordero, Tomoya Fujita
-
-9.3.0 (2025-03-04)
-------------------
-* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
-* Contributors: Carlos Espinoza Curto
-
-9.2.1 (2025-02-17)
-------------------
-* Export a modern CMake target (`#805 <https://github.com/ros2/rmw_fastrtps/issues/805>`_)
-* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
-* Fix some overwritten errors in rmw_fastrtps. (`#799 <https://github.com/ros2/rmw_fastrtps/issues/799>`_)
-* Contributors: Chris Lalancette, Miguel Company, Shane Loretz
-
-9.2.0 (2024-12-20)
-------------------
-* Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
-* Contributors: Christophe Bedard
-
-9.1.0 (2024-11-25)
-------------------
-
-9.0.3 (2024-11-20)
-------------------
-
-9.0.2 (2024-10-03)
-------------------
-
-9.0.1 (2024-07-29)
-------------------
-
-9.0.0 (2024-06-17)
-------------------
-
-8.5.0 (2024-04-26)
+8.4.1 (2024-06-27)
 ------------------
 
 8.4.0 (2024-04-09)

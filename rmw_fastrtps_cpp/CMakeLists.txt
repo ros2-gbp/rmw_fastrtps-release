@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.5)
 
 project(rmw_fastrtps_cpp)
 
@@ -30,7 +30,7 @@ if(SECURITY)
   find_package(OpenSSL REQUIRED)
 endif()
 
-find_package(ament_cmake_ros_core REQUIRED)
+find_package(ament_cmake_ros REQUIRED)
 
 find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
@@ -38,8 +38,10 @@ find_package(rmw_dds_common REQUIRED)
 find_package(rmw_fastrtps_shared_cpp REQUIRED)
 find_package(tracetools REQUIRED)
 
-find_package(fastcdr 2 REQUIRED)
-find_package(fastdds 3 REQUIRED)
+find_package(fastrtps_cmake_module REQUIRED)
+find_package(fastcdr 2 REQUIRED CONFIG)
+find_package(fastrtps 2.13 REQUIRED CONFIG)
+find_package(FastRTPS 2.13 REQUIRED MODULE)
 
 find_package(rmw REQUIRED)
 find_package(rosidl_dynamic_typesupport REQUIRED)
@@ -47,11 +49,10 @@ find_package(rosidl_dynamic_typesupport_fastrtps REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_c REQUIRED)
 find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
-find_package(rosidl_buffer_backend_registry REQUIRED)
+
+include_directories(include)
 
 add_library(rmw_fastrtps_cpp
-  src/buffer_backend_loader.cpp
-  src/buffer_endpoint_registry.cpp
   src/get_client.cpp
   src/get_participant.cpp
   src/get_publisher.cpp
@@ -71,7 +72,6 @@ add_library(rmw_fastrtps_cpp
   src/rmw_get_gid_for_publisher.cpp
   src/rmw_get_implementation_identifier.cpp
   src/rmw_get_serialization_format.cpp
-  src/rmw_get_service_endpoint_info.cpp
   src/rmw_get_topic_endpoint_info.cpp
   src/rmw_guard_condition.cpp
   src/rmw_init.cpp
@@ -100,7 +100,7 @@ add_library(rmw_fastrtps_cpp
 )
 target_link_libraries(rmw_fastrtps_cpp PUBLIC
   fastcdr
-  fastdds
+  fastrtps
   rmw::rmw
   rmw_fastrtps_shared_cpp::rmw_fastrtps_shared_cpp
   rosidl_runtime_c::rosidl_runtime_c
@@ -109,20 +109,12 @@ target_link_libraries(rmw_fastrtps_cpp PUBLIC
 target_link_libraries(rmw_fastrtps_cpp PRIVATE
   rcpputils::rcpputils
   rcutils::rcutils
-  rosidl_buffer_backend_registry::rosidl_buffer_backend_registry
   rmw_dds_common::rmw_dds_common_library
   rosidl_dynamic_typesupport::rosidl_dynamic_typesupport
   rosidl_dynamic_typesupport_fastrtps::rosidl_dynamic_typesupport_fastrtps
   rosidl_typesupport_fastrtps_c::rosidl_typesupport_fastrtps_c
   tracetools::tracetools
 )
-
-target_include_directories(rmw_fastrtps_cpp PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_include_directories(rmw_fastrtps_cpp PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 
 configure_rmw_library(rmw_fastrtps_cpp)
 
@@ -134,14 +126,12 @@ target_compile_definitions(${PROJECT_NAME}
 # Export old-style CMake variables
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(rmw_fastrtps_cpp)
-# Export a modern CMake target
-ament_export_targets(rmw_fastrtps_cpp)
 
 ament_export_dependencies(fastcdr rmw rmw_fastrtps_shared_cpp rosidl_runtime_c rosidl_typesupport_fastrtps_cpp)
 
 register_rmw_implementation(
-  "c:rosidl_typesupport_fastrtps_c:rosidl_typesupport_introspection_c"
-  "cpp:rosidl_typesupport_fastrtps_cpp:rosidl_typesupport_introspection_cpp")
+  "c:rosidl_typesupport_c:rosidl_typesupport_fastrtps_c:rosidl_typesupport_introspection_c"
+  "cpp:rosidl_typesupport_cpp:rosidl_typesupport_fastrtps_cpp:rosidl_typesupport_introspection_cpp")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -158,12 +148,12 @@ if(BUILD_TESTING)
     rcutils::rcutils
     rmw::rmw
     rmw_fastrtps_cpp
-    test_msgs::test_msgs
+    ${test_msgs_TARGETS}
   )
 
   ament_add_gtest(test_logging test/test_logging.cpp)
   target_link_libraries(test_logging
-    fastdds
+    fastrtps
     rmw::rmw
     rmw_fastrtps_cpp
   )
@@ -179,7 +169,7 @@ install(
 )
 
 install(
-  TARGETS rmw_fastrtps_cpp EXPORT rmw_fastrtps_cpp
+  TARGETS rmw_fastrtps_cpp
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

@@ -70,9 +70,8 @@ __rmw_destroy_client(
     std::lock_guard<std::mutex> lck(participant_info->entity_creation_mutex_);
 
     // Delete DataReader
-    eprosima::fastdds::dds::ReturnCode_t ret = participant_info->subscriber_->delete_datareader(
-      info->response_reader_);
-    if (ret != eprosima::fastdds::dds::RETCODE_OK) {
+    ReturnCode_t ret = participant_info->subscriber_->delete_datareader(info->response_reader_);
+    if (ret != ReturnCode_t::RETCODE_OK) {
       show_previous_error();
       RMW_SET_ERROR_MSG("destroy_client() failed to delete datareader");
       final_ret = RMW_RET_ERROR;
@@ -86,7 +85,7 @@ __rmw_destroy_client(
 
     // Delete DataWriter
     ret = participant_info->publisher_->delete_datawriter(info->request_writer_);
-    if (ret != eprosima::fastdds::dds::RETCODE_OK) {
+    if (ret != ReturnCode_t::RETCODE_OK) {
       show_previous_error();
       RMW_SET_ERROR_MSG("destroy_client() failed to delete datawriter");
       final_ret = RMW_RET_ERROR;

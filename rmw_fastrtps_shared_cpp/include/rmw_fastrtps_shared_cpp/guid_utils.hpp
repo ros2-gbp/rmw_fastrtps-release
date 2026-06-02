@@ -18,21 +18,18 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <string>
 #include <type_traits>
 
-#include "fastdds/rtps/common/Guid.hpp"
-
-#include "rmw/types.h"
+#include "fastdds/rtps/common/Guid.h"
 
 namespace rmw_fastrtps_shared_cpp
 {
 
 template<typename ByteT>
 void
-copy_from_byte_array_to_fastdds_guid(
+copy_from_byte_array_to_fastrtps_guid(
   const ByteT * guid_byte_array,
-  eprosima::fastdds::rtps::GUID_t * guid)
+  eprosima::fastrtps::rtps::GUID_t * guid)
 {
   static_assert(
     std::is_same<uint8_t, ByteT>::value || std::is_same<int8_t, ByteT>::value,
@@ -46,8 +43,8 @@ copy_from_byte_array_to_fastdds_guid(
 
 template<typename ByteT>
 void
-copy_from_fastdds_guid_to_byte_array(
-  const eprosima::fastdds::rtps::GUID_t & guid,
+copy_from_fastrtps_guid_to_byte_array(
+  const eprosima::fastrtps::rtps::GUID_t & guid,
   ByteT * guid_byte_array)
 {
   static_assert(
@@ -59,9 +56,9 @@ copy_from_fastdds_guid_to_byte_array(
   memcpy(&guid_byte_array[prefix_size], &guid.entityId, guid.entityId.size);
 }
 
-struct hash_fastdds_guid
+struct hash_fastrtps_guid
 {
-  std::size_t operator()(const eprosima::fastdds::rtps::GUID_t & guid) const
+  std::size_t operator()(const eprosima::fastrtps::rtps::GUID_t & guid) const
   {
     union u_convert {
       uint8_t plain_value[sizeof(guid)];
@@ -74,7 +71,7 @@ struct hash_fastdds_guid
       offsetof(u_convert, plain_value) == offsetof(u_convert, plain_ints),
       "Plain guid should be easily convertible to uint32_t[4]");
 
-    copy_from_fastdds_guid_to_byte_array(guid, u.plain_value);
+    copy_from_fastrtps_guid_to_byte_array(guid, u.plain_value);
 
     constexpr std::size_t prime_1 = 7;
     constexpr std::size_t prime_2 = 31;
@@ -88,19 +85,6 @@ struct hash_fastdds_guid
     return ret_val;
   }
 };
-
-inline std::string
-gid_to_hex(const rmw_gid_t & gid, size_t bytes = RMW_GID_STORAGE_SIZE)
-{
-  static const char hex_chars[] = "0123456789abcdef";
-  std::string result;
-  result.reserve(bytes * 2);
-  for (size_t i = 0; i < bytes && i < RMW_GID_STORAGE_SIZE; ++i) {
-    result += hex_chars[(gid.data[i] >> 4) & 0xF];
-    result += hex_chars[gid.data[i] & 0xF];
-  }
-  return result;
-}
 
 }  // namespace rmw_fastrtps_shared_cpp
 

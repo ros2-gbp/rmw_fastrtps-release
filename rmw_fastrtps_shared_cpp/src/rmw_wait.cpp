@@ -80,13 +80,8 @@ static bool has_triggered_condition(
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK ==
+      if (ReturnCode_t::RETCODE_OK ==
         custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
-      {
-        return true;
-      }
-      if (custom_subscriber_info->buffer_data_guard_ &&
-        custom_subscriber_info->buffer_data_guard_->get_trigger_value())
       {
         return true;
       }
@@ -98,7 +93,7 @@ static bool has_triggered_condition(
       void * data = clients->clients[i];
       auto custom_client_info = static_cast<CustomClientInfo *>(data);
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK ==
+      if (ReturnCode_t::RETCODE_OK ==
         custom_client_info->response_reader_->get_first_untaken_info(&sample_info))
       {
         return true;
@@ -111,7 +106,7 @@ static bool has_triggered_condition(
       void * data = services->services[i];
       auto custom_service_info = static_cast<CustomServiceInfo *>(data);
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK ==
+      if (ReturnCode_t::RETCODE_OK ==
         custom_service_info->request_reader_->get_first_untaken_info(&sample_info))
       {
         return true;
@@ -165,9 +160,6 @@ __rmw_wait(
         auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
         attached_conditions.push_back(
           &custom_subscriber_info->data_reader_->get_statuscondition());
-        if (custom_subscriber_info->buffer_data_guard_) {
-          attached_conditions.push_back(custom_subscriber_info->buffer_data_guard_.get());
-        }
       }
     }
 
@@ -217,13 +209,13 @@ __rmw_wait(
 
     Duration_t timeout = (wait_timeout) ?
       Duration_t{static_cast<int32_t>(wait_timeout->sec),
-      static_cast<uint32_t>(wait_timeout->nsec)} : eprosima::fastdds::dds::c_TimeInfinite;
+      static_cast<uint32_t>(wait_timeout->nsec)} : eprosima::fastrtps::c_TimeInfinite;
 
     eprosima::fastdds::dds::ConditionSeq triggered_conditions;
-    eprosima::fastdds::dds::ReturnCode_t ret_code = fastdds_wait_set->wait(
+    ReturnCode_t ret_code = fastdds_wait_set->wait(
       triggered_conditions,
       timeout);
-    wait_result = (ret_code == eprosima::fastdds::dds::RETCODE_OK);
+    wait_result = (ret_code == ReturnCode_t::RETCODE_OK);
 
     // Detach all of the conditions from the wait set.
     // TODO(mjcarroll): When upstream has the ability to detach a vector of conditions,
@@ -239,20 +231,10 @@ __rmw_wait(
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
 
-      bool has_data = false;
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK ==
+      if (ReturnCode_t::RETCODE_OK !=
         custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
       {
-        has_data = true;
-      }
-      if (!has_data && custom_subscriber_info->buffer_data_guard_ &&
-        custom_subscriber_info->buffer_data_guard_->get_trigger_value())
-      {
-        has_data = true;
-        custom_subscriber_info->buffer_data_guard_->set_trigger_value(false);
-      }
-      if (!has_data) {
         subscriptions->subscribers[i] = 0;
       }
     }
@@ -264,7 +246,7 @@ __rmw_wait(
       auto custom_client_info = static_cast<CustomClientInfo *>(data);
 
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK !=
+      if (ReturnCode_t::RETCODE_OK !=
         custom_client_info->response_reader_->get_first_untaken_info(&sample_info))
       {
         clients->clients[i] = 0;
@@ -278,7 +260,7 @@ __rmw_wait(
       auto custom_service_info = static_cast<CustomServiceInfo *>(data);
 
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK !=
+      if (ReturnCode_t::RETCODE_OK !=
         custom_service_info->request_reader_->get_first_untaken_info(&sample_info))
       {
         services->services[i] = 0;

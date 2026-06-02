@@ -23,10 +23,9 @@
 #include "fastdds/dds/topic/Topic.hpp"
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
-#include "fastdds/rtps/attributes/ResourceManagement.hpp"
+#include "fastdds/rtps/resources/ResourceManagement.h"
 
 #include "rcutils/error_handling.h"
-#include "rcutils/logging_macros.h"
 #include "rcutils/macros.h"
 
 #include "rmw/allocators.h"
@@ -47,10 +46,6 @@
 
 #include "rmw_fastrtps_cpp/identifier.hpp"
 #include "rmw_fastrtps_cpp/publisher.hpp"
-
-#include "buffer_backend_context.hpp"
-#include "rosidl_buffer_backend_registry/backend_utils.hpp"
-#include "rosidl_typesupport_fastrtps_cpp/message_type_support.h"
 
 #include "tracetools/tracetools.h"
 
@@ -181,7 +176,7 @@ rmw_fastrtps_cpp::create_publisher(
   /////
   // Create the Type Support struct
   if (!fastdds_type) {
-    auto tsupport = new (std::nothrow) MessageTypeSupport_cpp(callbacks, type_supports);
+    auto tsupport = new (std::nothrow) MessageTypeSupport_cpp(callbacks);
     if (!tsupport) {
       RMW_SET_ERROR_MSG("create_publisher() failed to allocate MessageTypeSupport");
       return nullptr;
@@ -191,13 +186,18 @@ rmw_fastrtps_cpp::create_publisher(
     fastdds_type.reset(tsupport);
   }
 
-  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_publisher() failed to register type");
     return nullptr;
   }
   info->type_support_ = fastdds_type;
 
-  info->type_support_->register_type_object_representation();
+  if (!rmw_fastrtps_shared_cpp::register_type_object(type_supports, type_name)) {
+    RMW_SET_ERROR_MSG_WITH_FORMAT_STRING(
+      "failed to register type object with incompatible type %s",
+      type_name.c_str());
+    return nullptr;
+  }
 
   /////
   // Create Listener
@@ -217,7 +217,7 @@ rmw_fastrtps_cpp::create_publisher(
   // Create and register Topic
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(*qos_policies, topic_qos)) {
-    // get_topic_qos already set the error
+    RMW_SET_ERROR_MSG("create_publisher() failed setting topic QoS");
     return nullptr;
   }
 
@@ -231,7 +231,7 @@ rmw_fastrtps_cpp::create_publisher(
   /////
   // Create DataWriter
 
-  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
   // datawriter which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataWriterQos writer_qos = publisher->get_default_datawriter_qos();
@@ -244,52 +244,24 @@ rmw_fastrtps_cpp::create_publisher(
   // Modify specific DataWriter Qos
   if (!participant_info->leave_middleware_default_qos) {
     if (participant_info->publishing_mode == publishing_mode_t::ASYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastrtps::ASYNCHRONOUS_PUBLISH_MODE;
     } else if (participant_info->publishing_mode == publishing_mode_t::SYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastrtps::SYNCHRONOUS_PUBLISH_MODE;
     }
 
     writer_qos.endpoint().history_memory_policy =
-      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     writer_qos.data_sharing().off();
   }
 
-  // Detect buffer-aware message type
-  bool has_buffer_fields = callbacks->has_buffer_fields;
-  std::unordered_map<std::string, std::string> backend_metadata;
-  if (has_buffer_fields) {
-    auto * backend_context =
-      static_cast<rmw_fastrtps_cpp::BufferBackendContext *>(
-      participant_info->buffer_serialization_context_);
-    if (backend_context) {
-      backend_metadata = rosidl_buffer_backend_registry::get_all_backend_metadata(
-        backend_context->backend_instances);
-    }
-    // CPU serialization is always implicitly supported by buffer-aware publishers.
-    // Advertise "cpu" so subscribers can discover this publisher via user_data.
-    if (backend_metadata.find("cpu") == backend_metadata.end()) {
-      backend_metadata["cpu"] = "";
-    }
-  }
-
-  // Get QoS from RMW, optionally encoding buffer backend info in user_data
+  // Get QoS from RMW
   if (!get_datawriter_qos(
       *qos_policies, *type_supports->get_type_hash_func(type_supports),
-      writer_qos, nullptr,
-      has_buffer_fields ? &backend_metadata : nullptr))
+      writer_qos))
   {
     RMW_SET_ERROR_MSG("create_publisher() failed setting data writer QoS");
     return nullptr;
-  }
-
-  // Apply resource limits QoS if the type is keyed
-  if (fastdds_type->is_compute_key_provided &&
-    !participant_info->leave_middleware_default_qos)
-  {
-    rmw_fastrtps_shared_cpp::apply_qos_resource_limits_for_keys(
-      writer_qos.history(),
-      writer_qos.resource_limits());
   }
 
   // Creates DataWriter with a mask enabling publication_matched calls for the listener
@@ -332,9 +304,7 @@ rmw_fastrtps_cpp::create_publisher(
       rmw_publisher_free(rmw_publisher);
     });
 
-  // The type support in the RMW implementation is always XCDR1.
-  rmw_publisher->can_loan_messages =
-    info->type_support_->is_plain(eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION);
+  rmw_publisher->can_loan_messages = info->type_support_->is_plain();
   rmw_publisher->implementation_identifier = eprosima_fastrtps_identifier;
   rmw_publisher->data = info;
 
@@ -346,61 +316,6 @@ rmw_fastrtps_cpp::create_publisher(
   memcpy(const_cast<char *>(rmw_publisher->topic_name), topic_name, strlen(topic_name) + 1);
 
   rmw_publisher->options = *publisher_options;
-
-  // Buffer-aware publisher setup
-  info->is_buffer_aware_ = has_buffer_fields;
-  if (has_buffer_fields) {
-    info->serialization_context_ = participant_info->buffer_serialization_context_;
-    info->backend_metadata_ = backend_metadata;
-    info->participant_ = dds_participant;
-    info->dds_publisher_ = publisher;
-
-    info->local_endpoint_info_ = rmw_get_zero_initialized_topic_endpoint_info();
-    info->local_endpoint_info_.endpoint_type = RMW_ENDPOINT_PUBLISHER;
-    std::memcpy(
-      info->local_endpoint_info_.endpoint_gid,
-      info->publisher_gid.data, RMW_GID_STORAGE_SIZE);
-
-    auto * backend_context =
-      static_cast<const rmw_fastrtps_cpp::BufferBackendContext *>(
-      info->serialization_context_);
-    if (backend_context) {
-      rosidl_buffer_backend_registry::notify_endpoint_created(
-        backend_context->backend_instances, info->local_endpoint_info_);
-    }
-
-    // Create CPU-only shared channel DataWriter.
-    // All CPU-only subscribers share this single channel instead of
-    // individual peer-to-peer endpoints.
-    std::string cpu_topic_name = topic_name_mangled + "/_buf_cpu";
-    eprosima::fastdds::dds::TopicQos cpu_topic_qos = dds_participant->get_default_topic_qos();
-    if (!get_topic_qos(*qos_policies, cpu_topic_qos)) {
-      RMW_SET_ERROR_MSG("create_publisher() failed setting CPU channel topic QoS");
-      return nullptr;
-    }
-    info->cpu_topic_ = participant_info->find_or_create_topic(
-      cpu_topic_name, type_name, cpu_topic_qos, nullptr);
-    if (!info->cpu_topic_) {
-      RMW_SET_ERROR_MSG("create_publisher() failed to create CPU channel topic");
-      return nullptr;
-    }
-
-    eprosima::fastdds::dds::DataWriterQos cpu_writer_qos = info->data_writer_->get_qos();
-    info->cpu_data_writer_ = publisher->create_datawriter(
-      info->cpu_topic_, cpu_writer_qos, nullptr);
-    if (!info->cpu_data_writer_) {
-      participant_info->delete_topic(info->cpu_topic_, nullptr);
-      info->cpu_topic_ = nullptr;
-      RMW_SET_ERROR_MSG("create_publisher() failed to create CPU channel DataWriter");
-      return nullptr;
-    }
-    info->cpu_data_writer_->get_statuscondition().set_enabled_statuses(
-      eprosima::fastdds::dds::StatusMask::none());
-
-    RCUTILS_LOG_DEBUG_NAMED(
-      "rmw_fastrtps_cpp",
-      "Created buffer-aware publisher on '%s'", topic_name);
-  }
 
   cleanup_rmw_publisher.cancel();
   cleanup_datawriter.cancel();
