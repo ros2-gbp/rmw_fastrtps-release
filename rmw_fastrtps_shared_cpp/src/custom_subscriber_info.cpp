@@ -42,10 +42,10 @@ CustomDataReaderListener::on_subscription_matched(
 
   if (info.current_count_change == 1) {
     subscription_event_->track_unique_publisher(
-      eprosima::fastrtps::rtps::iHandle2GUID(info.last_publication_handle));
+      eprosima::fastdds::rtps::iHandle2GUID(info.last_publication_handle));
   } else if (info.current_count_change == -1) {
     subscription_event_->untrack_unique_publisher(
-      eprosima::fastrtps::rtps::iHandle2GUID(info.last_publication_handle));
+      eprosima::fastdds::rtps::iHandle2GUID(info.last_publication_handle));
   } else {
     return;
   }
@@ -377,13 +377,13 @@ size_t RMWSubscriptionEvent::publisher_count() const
   return publishers_.size();
 }
 
-void RMWSubscriptionEvent::track_unique_publisher(eprosima::fastrtps::rtps::GUID_t guid)
+void RMWSubscriptionEvent::track_unique_publisher(eprosima::fastdds::rtps::GUID_t guid)
 {
   std::lock_guard<std::mutex> lock(publishers_mutex_);
   publishers_.insert(guid);
 }
 
-void RMWSubscriptionEvent::untrack_unique_publisher(eprosima::fastrtps::rtps::GUID_t guid)
+void RMWSubscriptionEvent::untrack_unique_publisher(eprosima::fastdds::rtps::GUID_t guid)
 {
   std::lock_guard<std::mutex> lock(publishers_mutex_);
   publishers_.erase(guid);
@@ -399,6 +399,15 @@ void RMWSubscriptionEvent::update_data_available()
     if (0 < unread_messages) {
       on_new_message_cb_(new_message_user_data_, unread_messages);
     }
+  }
+}
+
+void RMWSubscriptionEvent::notify_buffer_data_available(size_t count)
+{
+  rcpputils::unique_lock<std::mutex> lock_mutex(on_new_message_m_);
+
+  if (on_new_message_cb_ && count > 0) {
+    on_new_message_cb_(new_message_user_data_, count);
   }
 }
 

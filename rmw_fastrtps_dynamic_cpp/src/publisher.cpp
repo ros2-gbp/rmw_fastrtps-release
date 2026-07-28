@@ -24,7 +24,7 @@
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/resources/ResourceManagement.h"
+#include "fastdds/rtps/attributes/ResourceManagement.hpp"
 
 #include "rcutils/error_handling.h"
 
@@ -44,6 +44,8 @@
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
 #include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
+
+#include "tracetools/tracetools.h"
 
 #include "publisher.hpp"
 #include "type_support_common.hpp"
@@ -197,7 +199,7 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
     fastdds_type.reset(tsupport);
   }
 
-  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_publisher() failed to register type");
     return nullptr;
   }
@@ -221,9 +223,8 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
   /////
   // Create and register Topic
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
-
   if (!get_topic_qos(*qos_policies, topic_qos)) {
-    RMW_SET_ERROR_MSG("create_publisher() failed setting topic QoS");
+    // get_topic_qos already set the error
     return nullptr;
   }
 
@@ -237,7 +238,7 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
   /////
   // Create DataWriter
 
-  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
   // datawriter which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataWriterQos writer_qos = publisher->get_default_datawriter_qos();
@@ -250,13 +251,13 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
   // Modify specific DataWriter Qos
   if (!participant_info->leave_middleware_default_qos) {
     if (participant_info->publishing_mode == publishing_mode_t::ASYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastrtps::ASYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
     } else if (participant_info->publishing_mode == publishing_mode_t::SYNCHRONOUS) {
-      writer_qos.publish_mode().kind = eprosima::fastrtps::SYNCHRONOUS_PUBLISH_MODE;
+      writer_qos.publish_mode().kind = eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
     }
 
     writer_qos.endpoint().history_memory_policy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     writer_qos.data_sharing().off();
   }
@@ -268,6 +269,15 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
   {
     RMW_SET_ERROR_MSG("create_publisher() failed setting data writer QoS");
     return nullptr;
+  }
+
+  // Apply resource limits QoS if the type is keyed
+  if (fastdds_type->is_compute_key_provided &&
+    !participant_info->leave_middleware_default_qos)
+  {
+    rmw_fastrtps_shared_cpp::apply_qos_resource_limits_for_keys(
+      writer_qos.history(),
+      writer_qos.resource_limits());
   }
 
   // Creates DataWriter (with publisher name to not change name policy)
@@ -309,7 +319,9 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
       rmw_publisher_free(rmw_publisher);
     });
 
-  rmw_publisher->can_loan_messages = info->type_support_->is_plain();
+  // The type support in the RMW implementation is always XCDR1.
+  rmw_publisher->can_loan_messages =
+    info->type_support_->is_plain(eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION);
   rmw_publisher->implementation_identifier = eprosima_fastrtps_identifier;
   rmw_publisher->data = info;
 
@@ -326,5 +338,10 @@ rmw_fastrtps_dynamic_cpp::create_publisher(
   cleanup_datawriter.cancel();
   return_type_support.cancel();
   cleanup_info.cancel();
+
+  TRACETOOLS_TRACEPOINT(
+    rmw_publisher_init,
+    static_cast<const void *>(rmw_publisher),
+    info->publisher_gid.data);
   return rmw_publisher;
 }

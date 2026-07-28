@@ -1,4 +1,4 @@
-// Copyright 2016-2018 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RMW_FASTRTPS_CPP__MESSAGETYPESUPPORT_HPP_
-#define RMW_FASTRTPS_CPP__MESSAGETYPESUPPORT_HPP_
+#ifndef BUFFER_BACKEND_LOADER_HPP_
+#define BUFFER_BACKEND_LOADER_HPP_
 
-#include "rosidl_typesupport_fastrtps_cpp/message_type_support.h"
-
-#include "TypeSupport.hpp"
+#include "buffer_backend_context.hpp"
 
 namespace rmw_fastrtps_cpp
 {
 
-class MessageTypeSupport : public TypeSupport
-{
-public:
-  explicit MessageTypeSupport(
-    const message_type_support_callbacks_t * members,
-    const rosidl_message_type_support_t * type_supports);
-};
+/// Load buffer backend plugins and register them with FastCDR serialization.
+/// Populates an RMW-context-local serialization map so multiple contexts in the
+/// same process do not share mutable global descriptor state.
+void initialize_buffer_backends(BufferBackendContext & context);
+
+/// Clear context-local serialization maps.
+void shutdown_buffer_backends(BufferBackendContext & context);
 
 }  // namespace rmw_fastrtps_cpp
 
-#endif  // RMW_FASTRTPS_CPP__MESSAGETYPESUPPORT_HPP_
+#endif  // BUFFER_BACKEND_LOADER_HPP_

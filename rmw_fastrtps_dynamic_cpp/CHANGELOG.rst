@@ -2,26 +2,101 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-8.4.4 (2026-06-02)
+9.5.2 (2026-07-28)
 ------------------
-* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_) (`#857 <https://github.com/ros2/rmw_fastrtps/issues/857>`_)
-  (cherry picked from commit 19f2e7fe0ce2e77b80c6bc2b7b9a7471c54f14d3)
-  Co-authored-by: Tomoya Fujita <Tomoya.Fujita@sony.com>
-* Contributors: mergify[bot]
+* use C++ 20 in default. (`#894 <https://github.com/ros2/rmw_fastrtps/issues/894>`_)
+* Contributors: Tomoya Fujita
 
-8.4.3 (2025-08-14)
+9.5.1 (2026-05-13)
 ------------------
-* Check remaining size before resizing sequences (`#827 <https://github.com/ros2/rmw_fastrtps/issues/827>`_) (`#835 <https://github.com/ros2/rmw_fastrtps/issues/835>`_)
-  (cherry picked from commit 09e5a5f1b9504431bbc8970bb098438041041dbe)
-  Co-authored-by: Miguel Company <miguelcompany@eprosima.com>
-* Contributors: mergify[bot]
 
-8.4.2 (2025-03-12)
+9.5.0 (2026-05-07)
 ------------------
-* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_) (`#813 <https://github.com/ros2/rmw_fastrtps/issues/813>`_)
-* Contributors: mergify[bot]
+* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps/issues/879>`_)
+* Contributors: Chris Lalancette
 
-8.4.1 (2024-06-27)
+9.4.6 (2026-04-09)
+------------------
+* Add support for rosidl::Buffer-aware per-endpoint pub/sub (`#867 <https://github.com/ros2/rmw_fastrtps/issues/867>`_)
+* Contributors: CY Chen
+
+9.4.5 (2026-03-30)
+------------------
+* Use new aggregate rosidl target instead of _TARGETS (`#870 <https://github.com/ros2/rmw_fastrtps/issues/870>`_)
+* fix: remove superflous buildtool_export_depend. (`#852 <https://github.com/ros2/rmw_fastrtps/issues/852>`_)
+* Contributors: Alexis Tsogias, Tomoya Fujita
+
+9.4.4 (2025-11-18)
+------------------
+* add : get clients, servers info (`#771 <https://github.com/ros2/rmw_fastrtps/issues/771>`_)
+* Contributors: Minju, Lee
+
+9.4.3 (2025-10-20)
+------------------
+* Do not include rosidl_typesupport\_{c,cpp} in rmw impl typesupport list (`#843 <https://github.com/ros2/rmw_fastrtps/issues/843>`_)
+* Contributors: Christophe Bedard
+
+9.4.2 (2025-07-29)
+------------------
+* Check remaining size before resizing sequences (`#827 <https://github.com/ros2/rmw_fastrtps/issues/827>`_)
+* Contributors: Miguel Company
+
+9.4.1 (2025-07-01)
+------------------
+* fix cmake deprecation (`#831 <https://github.com/ros2/rmw_fastrtps/issues/831>`_)
+* Contributors: mosfet80
+
+9.4.0 (2025-04-25)
+------------------
+
+9.3.2 (2025-04-18)
+------------------
+* Address RHEL warnings and missing includes. (`#819 <https://github.com/ros2/rmw_fastrtps/issues/819>`_)
+* Support topic instances (`#753 <https://github.com/ros2/rmw_fastrtps/issues/753>`_)
+* Switch to ament_cmake_ros_core package (`#818 <https://github.com/ros2/rmw_fastrtps/issues/818>`_)
+* Make rmw_fastrtps_dynamic_cpp export a modern CMake target (`#814 <https://github.com/ros2/rmw_fastrtps/issues/814>`_)
+* Contributors: Miguel Company, Scott K Logan, Shane Loretz, Tomoya Fujita
+
+9.3.1 (2025-03-11)
+------------------
+* Added rmw_event_type_is_supported (`#809 <https://github.com/ros2/rmw_fastrtps/issues/809>`_)
+* use rmw_enclave_options_xxx APIs instead. (`#808 <https://github.com/ros2/rmw_fastrtps/issues/808>`_)
+* Contributors: Alejandro Hernández Cordero, Tomoya Fujita
+
+9.3.0 (2025-03-04)
+------------------
+* Add deprecation warning for FASTRTPS_DEFAULT_PROFILES_FILE (`#806 <https://github.com/ros2/rmw_fastrtps/issues/806>`_)
+* Contributors: Carlos Espinoza Curto
+
+9.2.1 (2025-02-17)
+------------------
+* Changes to build against Fast DDS 3.0 (`#776 <https://github.com/ros2/rmw_fastrtps/issues/776>`_)
+* Fix some overwritten errors in rmw_fastrtps. (`#799 <https://github.com/ros2/rmw_fastrtps/issues/799>`_)
+* Contributors: Chris Lalancette, Miguel Company
+
+9.2.0 (2024-12-20)
+------------------
+* Instrument client/service for end-to-end request/response tracking (`#787 <https://github.com/ros2/rmw_fastrtps/issues/787>`_)
+* Contributors: Christophe Bedard
+
+9.1.0 (2024-11-25)
+------------------
+
+9.0.3 (2024-11-20)
+------------------
+
+9.0.2 (2024-10-03)
+------------------
+
+9.0.1 (2024-07-29)
+------------------
+* Add tracing instrumentation to rmw_fastrtps_dynamic_cpp (`#772 <https://github.com/ros2/rmw_fastrtps/issues/772>`_)
+* Contributors: Christophe Bedard
+
+9.0.0 (2024-06-17)
+------------------
+
+8.5.0 (2024-04-26)
 ------------------
 
 8.4.0 (2024-04-09)

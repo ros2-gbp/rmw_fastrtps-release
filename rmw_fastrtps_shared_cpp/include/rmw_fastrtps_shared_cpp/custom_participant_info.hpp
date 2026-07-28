@@ -15,22 +15,25 @@
 #ifndef RMW_FASTRTPS_SHARED_CPP__CUSTOM_PARTICIPANT_INFO_HPP_
 #define RMW_FASTRTPS_SHARED_CPP__CUSTOM_PARTICIPANT_INFO_HPP_
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "fastdds/dds/domain/DomainParticipant.hpp"
+#include "fastdds/dds/domain/DomainParticipantFactory.hpp"
 #include "fastdds/dds/domain/DomainParticipantListener.hpp"
 #include "fastdds/dds/publisher/Publisher.hpp"
 #include "fastdds/dds/subscriber/Subscriber.hpp"
 
-#include "fastdds/rtps/participant/ParticipantDiscoveryInfo.h"
-#include "fastdds/rtps/reader/ReaderDiscoveryInfo.h"
-#include "fastdds/rtps/writer/WriterDiscoveryInfo.h"
+#include "fastdds/rtps/builtin/data/PublicationBuiltinTopicData.hpp"
+#include "fastdds/rtps/builtin/data/SubscriptionBuiltinTopicData.hpp"
+#include "fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp"
 
 #include "rcpputils/thread_safety_annotations.hpp"
 #include "rcutils/logging_macros.h"
@@ -91,6 +94,9 @@ typedef struct UseCountTopic
 
 typedef struct CustomParticipantInfo
 {
+  std::shared_ptr<eprosima::fastdds::dds::DomainParticipantFactory> factory_ =
+    eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
+
   eprosima::fastdds::dds::DomainParticipant * participant_{nullptr};
   ParticipantListener * listener_{nullptr};
 
@@ -105,6 +111,7 @@ typedef struct CustomParticipantInfo
 
   eprosima::fastdds::dds::Publisher * publisher_{nullptr};
   eprosima::fastdds::dds::Subscriber * subscriber_{nullptr};
+  void * buffer_serialization_context_{nullptr};
 
   // Protects creation and destruction of topics, readers and writers
   mutable std::mutex entity_creation_mutex_;
@@ -130,6 +137,12 @@ typedef struct CustomParticipantInfo
     EventListenerInterface * event_listener);
 } CustomParticipantInfo;
 
+/// Callback type for when a buffer-aware endpoint is discovered via DDS.
+/// Parameters: gid, topic_name, backend_metadata, is_reader.
+using BufferDiscoveryCallback = std::function<void (
+      const rmw_gid_t &, const std::string &,
+      const std::unordered_map<std::string, std::string> &, bool)>;
+
 class ParticipantListener : public eprosima::fastdds::dds::DomainParticipantListener
 {
 public:
@@ -140,16 +153,24 @@ public:
     identifier_(identifier)
   {}
 
+  void set_buffer_discovery_callback(BufferDiscoveryCallback cb)
+  {
+    std::lock_guard<std::mutex> lock(buffer_cb_mutex_);
+    buffer_discovery_cb_ = std::move(cb);
+  }
+
   void on_participant_discovery(
-    eprosima::fastdds::dds::DomainParticipant *,
-    eprosima::fastrtps::rtps::ParticipantDiscoveryInfo && info,
+    eprosima::fastdds::dds::DomainParticipant * participant,
+    eprosima::fastdds::rtps::ParticipantDiscoveryStatus reason,
+    const eprosima::fastdds::dds::ParticipantBuiltinTopicData & info,
     bool & should_be_ignored) override
   {
+    static_cast<void>(participant);
     should_be_ignored = false;
-    switch (info.status) {
-      case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::DISCOVERED_PARTICIPANT:
+    switch (reason) {
+      case eprosima::fastdds::rtps::ParticipantDiscoveryStatus::DISCOVERED_PARTICIPANT:
         {
-          auto map = rmw::impl::cpp::parse_key_value(info.info.m_userData);
+          auto map = rmw::impl::cpp::parse_key_value(info.user_data);
           auto name_found = map.find("enclave");
 
           if (name_found == map.end()) {
@@ -160,41 +181,47 @@ public:
 
           context->graph_cache.add_participant(
             rmw_fastrtps_shared_cpp::create_rmw_gid(
-              identifier_, info.info.m_guid),
+              identifier_, info.guid),
             enclave);
           break;
         }
-      case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::REMOVED_PARTICIPANT:
+      case eprosima::fastdds::rtps::ParticipantDiscoveryStatus::REMOVED_PARTICIPANT:
       // fall through
-      case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::DROPPED_PARTICIPANT:
+      case eprosima::fastdds::rtps::ParticipantDiscoveryStatus::DROPPED_PARTICIPANT:
         context->graph_cache.remove_participant(
           rmw_fastrtps_shared_cpp::create_rmw_gid(
-            identifier_, info.info.m_guid));
+            identifier_, info.guid));
         break;
       default:
         return;
     }
   }
 
-  void on_subscriber_discovery(
+  void on_data_reader_discovery(
     eprosima::fastdds::dds::DomainParticipant *,
-    eprosima::fastrtps::rtps::ReaderDiscoveryInfo && info) override
+    eprosima::fastdds::rtps::ReaderDiscoveryStatus reason,
+    const eprosima::fastdds::dds::SubscriptionBuiltinTopicData & info,
+    bool & should_be_ignored) override
   {
-    if (eprosima::fastrtps::rtps::ReaderDiscoveryInfo::CHANGED_QOS_READER != info.status) {
+    should_be_ignored = false;
+    if (eprosima::fastdds::rtps::ReaderDiscoveryStatus::CHANGED_QOS_READER != reason) {
       bool is_alive =
-        eprosima::fastrtps::rtps::ReaderDiscoveryInfo::DISCOVERED_READER == info.status;
-      process_discovery_info(info.info, is_alive, true);
+        eprosima::fastdds::rtps::ReaderDiscoveryStatus::DISCOVERED_READER == reason;
+      process_discovery_info(info, is_alive, true);
     }
   }
 
-  void on_publisher_discovery(
+  void on_data_writer_discovery(
     eprosima::fastdds::dds::DomainParticipant *,
-    eprosima::fastrtps::rtps::WriterDiscoveryInfo && info) override
+    eprosima::fastdds::rtps::WriterDiscoveryStatus reason,
+    const eprosima::fastdds::rtps::PublicationBuiltinTopicData & info,
+    bool & should_be_ignored) override
   {
-    if (eprosima::fastrtps::rtps::WriterDiscoveryInfo::CHANGED_QOS_WRITER != info.status) {
+    should_be_ignored = false;
+    if (eprosima::fastdds::rtps::WriterDiscoveryStatus::CHANGED_QOS_WRITER != reason) {
       bool is_alive =
-        eprosima::fastrtps::rtps::WriterDiscoveryInfo::DISCOVERED_WRITER == info.status;
-      process_discovery_info(info.info, is_alive, false);
+        eprosima::fastdds::rtps::WriterDiscoveryStatus::DISCOVERED_WRITER == reason;
+      process_discovery_info(info, is_alive, false);
     }
   }
 
@@ -206,9 +233,9 @@ private:
     {
       if (is_alive) {
         rmw_qos_profile_t qos_profile = rmw_qos_profile_unknown;
-        rtps_qos_to_rmw_qos(proxyData.m_qos, &qos_profile);
+        rtps_qos_to_rmw_qos(proxyData, &qos_profile);
 
-        const auto & userDataValue = proxyData.m_qos.m_userData.getValue();
+        const auto & userDataValue = proxyData.user_data.getValue();
         rosidl_type_hash_t type_hash;
         if (RMW_RET_OK != rmw_dds_common::parse_type_hash_from_user_data(
             userDataValue.data(), userDataValue.size(), type_hash))
@@ -231,24 +258,51 @@ private:
           // We've handled the error, so clear it out.
           rmw_reset_error();
         }
-
+        rosidl_type_hash_t ser_type_hash;
+        rosidl_type_hash_t * ser_type_hash_ptr = nullptr;
+        if (RMW_RET_OK == rmw_dds_common::parse_sertype_hash_from_user_data(
+            userDataValue.data(), userDataValue.size(), ser_type_hash))
+        {
+          ser_type_hash_ptr = &ser_type_hash;
+        }
         context->graph_cache.add_entity(
           rmw_fastrtps_shared_cpp::create_rmw_gid(
             identifier_,
-            proxyData.guid()),
-          proxyData.topicName().to_string(),
-          proxyData.typeName().to_string(),
+            proxyData.guid),
+          proxyData.topic_name.to_string(),
+          proxyData.type_name.to_string(),
           type_hash,
           rmw_fastrtps_shared_cpp::create_rmw_gid(
             identifier_,
-            iHandle2GUID(proxyData.RTPSParticipantKey())),
+            proxyData.participant_guid),
           qos_profile,
-          is_reader);
+          is_reader,
+          ser_type_hash_ptr);
+
+        // Parse buffer backend info and invoke callback if present.
+        // Copy the callback outside the lock so buffer_cb_mutex_ is not held
+        // during the callback (which may acquire other mutexes or do DDS work).
+        auto buffer_backends = parse_buffer_backends_from_user_data(
+          userDataValue.data(), userDataValue.size());
+        if (!buffer_backends.empty()) {
+          BufferDiscoveryCallback cb_copy;
+          {
+            std::lock_guard<std::mutex> lock(buffer_cb_mutex_);
+            cb_copy = buffer_discovery_cb_;
+          }
+          if (cb_copy) {
+            cb_copy(
+              rmw_fastrtps_shared_cpp::create_rmw_gid(identifier_, proxyData.guid),
+              proxyData.topic_name.to_string(),
+              buffer_backends,
+              is_reader);
+          }
+        }
       } else {
         context->graph_cache.remove_entity(
           rmw_fastrtps_shared_cpp::create_rmw_gid(
             identifier_,
-            proxyData.guid()),
+            proxyData.guid),
           is_reader);
       }
     }
@@ -256,6 +310,9 @@ private:
 
   rmw_dds_common::Context * context;
   const char * const identifier_;
+
+  std::mutex buffer_cb_mutex_;
+  BufferDiscoveryCallback buffer_discovery_cb_;
 };
 
 #endif  // RMW_FASTRTPS_SHARED_CPP__CUSTOM_PARTICIPANT_INFO_HPP_

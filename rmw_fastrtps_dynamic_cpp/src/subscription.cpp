@@ -23,7 +23,7 @@
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
-#include "fastdds/rtps/resources/ResourceManagement.h"
+#include "fastdds/rtps/attributes/ResourceManagement.hpp"
 
 #include "rcutils/error_handling.h"
 
@@ -45,17 +45,15 @@
 #include "rmw_fastrtps_shared_cpp/subscription.hpp"
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
-#include "fastrtps/participant/Participant.h"
-#include "fastrtps/subscriber/Subscriber.h"
-#include "fastrtps/xmlparser/XMLProfileManager.h"
-
 #include "rmw_fastrtps_dynamic_cpp/identifier.hpp"
+
+#include "tracetools/tracetools.h"
 
 #include "subscription.hpp"
 #include "type_support_common.hpp"
 #include "type_support_registry.hpp"
 
-using PropertyPolicyHelper = eprosima::fastrtps::rtps::PropertyPolicyHelper;
+using PropertyPolicyHelper = eprosima::fastdds::rtps::PropertyPolicyHelper;
 
 namespace rmw_fastrtps_dynamic_cpp
 {
@@ -202,12 +200,12 @@ create_subscription(
     fastdds_type.reset(tsupport);
   }
 
-  if (keyed && !fastdds_type->m_isGetKeyDefined) {
+  if (keyed && !fastdds_type->is_compute_key_provided) {
     RMW_SET_ERROR_MSG("create_subscription() requested a keyed topic with a non-keyed type");
     return nullptr;
   }
 
-  if (ReturnCode_t::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
+  if (eprosima::fastdds::dds::RETCODE_OK != fastdds_type.register_type(dds_participant)) {
     RMW_SET_ERROR_MSG("create_subscription() failed to register type");
     return nullptr;
   }
@@ -233,7 +231,7 @@ create_subscription(
   // Create and register Topic
   eprosima::fastdds::dds::TopicQos topic_qos = dds_participant->get_default_topic_qos();
   if (!get_topic_qos(*qos_policies, topic_qos)) {
-    RMW_SET_ERROR_MSG("create_publisher() failed setting topic QoS");
+    // get_topic_qos already set the error
     return nullptr;
   }
 
@@ -249,7 +247,7 @@ create_subscription(
   /////
   // Create DataReader
 
-  // If the user defined an XML file via env "FASTRTPS_DEFAULT_PROFILES_FILE", try to load
+  // If the user defined an XML file via env "FASTDDS_DEFAULT_PROFILES_FILE", try to load
   // datareader which profile name matches with topic_name. If such profile does not exist,
   // then use the default Fast DDS QoS.
   eprosima::fastdds::dds::DataReaderQos reader_qos = subscriber->get_default_datareader_qos();
@@ -261,7 +259,7 @@ create_subscription(
 
   if (!participant_info->leave_middleware_default_qos) {
     reader_qos.endpoint().history_memory_policy =
-      eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+      eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
     reader_qos.data_sharing().off();
   }
@@ -272,6 +270,15 @@ create_subscription(
   {
     RMW_SET_ERROR_MSG("create_subscription() failed setting data reader QoS");
     return nullptr;
+  }
+
+  // Apply resource limits QoS if the type is keyed
+  if (fastdds_type->is_compute_key_provided &&
+    !participant_info->leave_middleware_default_qos)
+  {
+    rmw_fastrtps_shared_cpp::apply_qos_resource_limits_for_keys(
+      reader_qos.history(),
+      reader_qos.resource_limits());
   }
 
   eprosima::fastdds::dds::DataReaderQos original_qos = reader_qos;
@@ -365,6 +372,11 @@ create_subscription(
   cleanup_datareader.cancel();
   return_type_support.cancel();
   cleanup_info.cancel();
+
+  TRACETOOLS_TRACEPOINT(
+    rmw_subscription_init,
+    static_cast<const void *>(rmw_subscription),
+    info->subscription_gid_.data);
   return rmw_subscription;
 }
 

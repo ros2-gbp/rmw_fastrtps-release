@@ -29,6 +29,26 @@
 
 namespace rmw_fastrtps_shared_cpp
 {
+static bool data_reader_has_data(
+  eprosima::fastdds::dds::DataReader * data_reader)
+{
+  if (!data_reader) {
+    return false;
+  }
+
+  eprosima::fastdds::dds::SampleInfo sample_info;
+  return eprosima::fastdds::dds::RETCODE_OK ==
+         data_reader->get_first_untaken_info(&sample_info);
+}
+
+static bool subscription_has_data(
+  const CustomSubscriberInfo * custom_subscriber_info)
+{
+  return data_reader_has_data(custom_subscriber_info->data_reader_) ||
+         data_reader_has_data(custom_subscriber_info->cpu_data_reader_) ||
+         data_reader_has_data(custom_subscriber_info->accel_data_reader_);
+}
+
 /// Check if any condition in the set of entities has a triggered condition.
 /**
  * If any condition is triggered before waiting, then we can skip some set-up,
@@ -79,10 +99,7 @@ static bool has_triggered_condition(
     for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
-      eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK ==
-        custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
-      {
+      if (subscription_has_data(custom_subscriber_info)) {
         return true;
       }
     }
@@ -93,7 +110,7 @@ static bool has_triggered_condition(
       void * data = clients->clients[i];
       auto custom_client_info = static_cast<CustomClientInfo *>(data);
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK ==
+      if (eprosima::fastdds::dds::RETCODE_OK ==
         custom_client_info->response_reader_->get_first_untaken_info(&sample_info))
       {
         return true;
@@ -106,7 +123,7 @@ static bool has_triggered_condition(
       void * data = services->services[i];
       auto custom_service_info = static_cast<CustomServiceInfo *>(data);
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK ==
+      if (eprosima::fastdds::dds::RETCODE_OK ==
         custom_service_info->request_reader_->get_first_untaken_info(&sample_info))
       {
         return true;
@@ -160,6 +177,14 @@ __rmw_wait(
         auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
         attached_conditions.push_back(
           &custom_subscriber_info->data_reader_->get_statuscondition());
+        if (custom_subscriber_info->cpu_data_reader_) {
+          attached_conditions.push_back(
+            &custom_subscriber_info->cpu_data_reader_->get_statuscondition());
+        }
+        if (custom_subscriber_info->accel_data_reader_) {
+          attached_conditions.push_back(
+            &custom_subscriber_info->accel_data_reader_->get_statuscondition());
+        }
       }
     }
 
@@ -209,13 +234,13 @@ __rmw_wait(
 
     Duration_t timeout = (wait_timeout) ?
       Duration_t{static_cast<int32_t>(wait_timeout->sec),
-      static_cast<uint32_t>(wait_timeout->nsec)} : eprosima::fastrtps::c_TimeInfinite;
+      static_cast<uint32_t>(wait_timeout->nsec)} : eprosima::fastdds::dds::c_TimeInfinite;
 
     eprosima::fastdds::dds::ConditionSeq triggered_conditions;
-    ReturnCode_t ret_code = fastdds_wait_set->wait(
+    eprosima::fastdds::dds::ReturnCode_t ret_code = fastdds_wait_set->wait(
       triggered_conditions,
       timeout);
-    wait_result = (ret_code == ReturnCode_t::RETCODE_OK);
+    wait_result = (ret_code == eprosima::fastdds::dds::RETCODE_OK);
 
     // Detach all of the conditions from the wait set.
     // TODO(mjcarroll): When upstream has the ability to detach a vector of conditions,
@@ -231,10 +256,7 @@ __rmw_wait(
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
 
-      eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK !=
-        custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
-      {
+      if (!subscription_has_data(custom_subscriber_info)) {
         subscriptions->subscribers[i] = 0;
       }
     }
@@ -246,7 +268,7 @@ __rmw_wait(
       auto custom_client_info = static_cast<CustomClientInfo *>(data);
 
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK !=
+      if (eprosima::fastdds::dds::RETCODE_OK !=
         custom_client_info->response_reader_->get_first_untaken_info(&sample_info))
       {
         clients->clients[i] = 0;
@@ -260,7 +282,7 @@ __rmw_wait(
       auto custom_service_info = static_cast<CustomServiceInfo *>(data);
 
       eprosima::fastdds::dds::SampleInfo sample_info;
-      if (ReturnCode_t::RETCODE_OK !=
+      if (eprosima::fastdds::dds::RETCODE_OK !=
         custom_service_info->request_reader_->get_first_untaken_info(&sample_info))
       {
         services->services[i] = 0;

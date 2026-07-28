@@ -16,12 +16,16 @@
 #define RMW_FASTRTPS_SHARED_CPP__CUSTOM_SUBSCRIBER_INFO_HPP_
 
 #include <algorithm>
+#include <atomic>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "fastdds/dds/core/status/DeadlineMissedStatus.hpp"
 #include "fastdds/dds/core/status/LivelinessChangedStatus.hpp"
@@ -32,13 +36,14 @@
 #include "fastdds/dds/topic/ContentFilteredTopic.hpp"
 #include "fastdds/dds/topic/TypeSupport.hpp"
 
-#include "fastdds/rtps/common/Guid.h"
-#include "fastdds/rtps/common/InstanceHandle.h"
+#include "fastdds/rtps/common/Guid.hpp"
+#include "fastdds/rtps/common/InstanceHandle.hpp"
 
 #include "rcpputils/thread_safety_annotations.hpp"
 
 #include "rmw/impl/cpp/macros.hpp"
 #include "rmw/event_callback_type.h"
+#include "rmw/topic_endpoint_info.h"
 
 #include "rmw_dds_common/context.hpp"
 
@@ -64,12 +69,12 @@ public:
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   void on_requested_deadline_missed(
     eprosima::fastdds::dds::DataReader * reader,
-    const eprosima::fastrtps::RequestedDeadlineMissedStatus & status) override;
+    const eprosima::fastdds::dds::RequestedDeadlineMissedStatus & status) override;
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   void on_liveliness_changed(
     eprosima::fastdds::dds::DataReader * reader,
-    const eprosima::fastrtps::LivelinessChangedStatus & status) override;
+    const eprosima::fastdds::dds::LivelinessChangedStatus & status) override;
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   void on_sample_lost(
@@ -89,6 +94,25 @@ namespace rmw_fastrtps_shared_cpp
 {
 struct LoanManager;
 }  // namespace rmw_fastrtps_shared_cpp
+
+/// Metadata about a discovered buffer-aware publisher, keyed by GID.
+struct PublisherBufferMetadata
+{
+  rmw_gid_t publisher_gid{};
+  rmw_topic_endpoint_info_t publisher_endpoint_info{};
+  std::unordered_map<std::string, std::string> backend_metadata;
+};
+
+/// Mutable buffer state shared between the discovery callback and the
+/// take/destroy paths.  Managed via shared_ptr so the callback can
+/// safely outlive the CustomSubscriberInfo that created it.
+struct BufferSubscriptionState
+{
+  std::atomic<bool> alive{true};
+  std::mutex mutex;
+  /// GID hex string -> publisher metadata, populated by discovery callback.
+  std::unordered_map<std::string, PublisherBufferMetadata> publisher_metadata;
+};
 
 struct CustomSubscriberInfo : public CustomEventInfo
 {
@@ -112,6 +136,24 @@ struct CustomSubscriberInfo : public CustomEventInfo
   eprosima::fastdds::dds::Topic * topic_ {nullptr};
   eprosima::fastdds::dds::ContentFilteredTopic * filtered_topic_ {nullptr};
   eprosima::fastdds::dds::DataReaderQos datareader_qos_;
+
+  // Buffer-aware subscription fields
+  bool is_buffer_aware_{false};
+  bool is_cpu_only_{false};
+  std::vector<std::string> my_backend_types_;
+  rmw_topic_endpoint_info_t local_endpoint_info_{};
+  const void * serialization_context_{nullptr};
+  std::shared_ptr<BufferSubscriptionState> buffer_state_{
+    std::make_shared<BufferSubscriptionState>()};
+  // CPU-only shared channel reader (when acceptable_buffer_backends is CPU-only)
+  eprosima::fastdds::dds::DataReader * cpu_data_reader_{nullptr};
+  eprosima::fastdds::dds::Topic * cpu_topic_{nullptr};
+  std::shared_ptr<eprosima::fastdds::dds::DataReaderListener> cpu_data_reader_listener_;
+
+  // Accelerated shared channel reader (all buffer-aware publishers write here)
+  eprosima::fastdds::dds::DataReader * accel_data_reader_{nullptr};
+  eprosima::fastdds::dds::Topic * accel_topic_{nullptr};
+  std::shared_ptr<eprosima::fastdds::dds::DataReaderListener> accel_data_reader_listener_;
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   EventListenerInterface *
@@ -174,7 +216,7 @@ public:
    * \param[in] guid The GUID of the newly-matched publisher to track.
    */
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
-  void track_unique_publisher(eprosima::fastrtps::rtps::GUID_t guid);
+  void track_unique_publisher(eprosima::fastdds::rtps::GUID_t guid);
 
   /// Remove a GUID from the internal set of unique publishers matched to this subscription.
   /**
@@ -184,7 +226,7 @@ public:
    * \param[in] guid The GUID of the newly-unmatched publisher to track.
    */
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
-  void untrack_unique_publisher(eprosima::fastrtps::rtps::GUID_t guid);
+  void untrack_unique_publisher(eprosima::fastdds::rtps::GUID_t guid);
 
   /// Return the number of unique publishers matched to this subscription.
   /**
@@ -195,6 +237,10 @@ public:
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   void update_data_available();
+
+  /// Notify that buffer data is available (bypasses main DataReader unread check).
+  RMW_FASTRTPS_SHARED_CPP_PUBLIC
+  void notify_buffer_data_available(size_t count);
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   void update_requested_deadline_missed(uint32_t total_count, uint32_t total_count_change);
@@ -252,7 +298,7 @@ private:
   eprosima::fastdds::dds::SubscriptionMatchedStatus matched_status_
   RCPPUTILS_TSA_GUARDED_BY(on_new_event_m_);
 
-  std::set<eprosima::fastrtps::rtps::GUID_t> publishers_ RCPPUTILS_TSA_GUARDED_BY(
+  std::set<eprosima::fastdds::rtps::GUID_t> publishers_ RCPPUTILS_TSA_GUARDED_BY(
     publishers_mutex_);
 
   rmw_event_callback_t on_new_message_cb_{nullptr};
