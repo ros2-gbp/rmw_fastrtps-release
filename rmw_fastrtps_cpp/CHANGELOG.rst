@@ -2,24 +2,18 @@
 Changelog for package rmw_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.5.2 (2026-07-28)
+9.4.9 (2026-07-30)
 ------------------
-* Fix buffer-aware subscriptions to preserve unread data across rmw_wait calls (`#900 <https://github.com/ros2/rmw_fastrtps/issues/900>`_)
-* Fix transient-local publishing for buffer-aware path (`#898 <https://github.com/ros2/rmw_fastrtps/issues/898>`_)
-* use C++ 20 in default. (`#894 <https://github.com/ros2/rmw_fastrtps/issues/894>`_)
-* Serialize encapsulation header on buffer aware topics (`#891 <https://github.com/ros2/rmw_fastrtps/issues/891>`_)
-* Contributors: CY Chen, Miguel Company, Tomoya Fujita
+* Fix buffer-aware subscriptions to preserve unread data across rmw_wait calls (`#900 <https://github.com/ros2/rmw_fastrtps/issues/900>`_) (`#902 <https://github.com/ros2/rmw_fastrtps/issues/902>`_)
+* Fix transient-local publishing for buffer-aware path (`#898 <https://github.com/ros2/rmw_fastrtps/issues/898>`_) (`#901 <https://github.com/ros2/rmw_fastrtps/issues/901>`_)
+* Contributors: mergify[bot]
 
-9.5.1 (2026-05-13)
+9.4.8 (2026-05-13)
 ------------------
-* Clean up logs for the rosidl::Buffer path (`#886 <https://github.com/ros2/rmw_fastrtps//issues/886>`_)
-* Contributors: CY Chen
-
-9.5.0 (2026-05-07)
-------------------
-* Fix rmw_take_serialized. (`#881 <https://github.com/ros2/rmw_fastrtps/issues/881>`_)
-* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps/issues/879>`_)
-* Contributors: Chris Lalancette
+* Clean up logs for the rosidl::Buffer path (`#886 <https://github.com/ros2/rmw_fastrtps//issues/886>`_) (`#887 <https://github.com/ros2/rmw_fastrtps//issues/887>`_)
+* Change the buffer-aware BUFBE: -> bufbe. (backport `#880 <https://github.com/ros2/rmw_fastrtps//issues/880>`_) (`#884 <https://github.com/ros2/rmw_fastrtps//issues/884>`_)
+* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps//issues/879>`_) (`#882 <https://github.com/ros2/rmw_fastrtps//issues/882>`_)
+* Contributors: mergify[bot]
 
 9.4.7 (2026-04-14)
 ------------------
