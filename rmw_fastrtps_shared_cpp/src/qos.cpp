@@ -12,14 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iomanip>
 #include <limits>
-#include <sstream>
-#include <string>
-#include <unordered_map>
 #include <vector>
-
-#include "rmw/types.h"
 
 #include "rcutils/logging_macros.h"
 
@@ -30,7 +24,6 @@
 #include "fastdds/dds/topic/qos/TopicQos.hpp"
 
 #include "rmw/error_handling.h"
-#include "rmw/impl/cpp/key_value.hpp"
 
 #include "rmw_dds_common/qos.hpp"
 
@@ -156,112 +149,12 @@ bool fill_entity_qos_from_profile(
   return true;
 }
 
-// Encoded as a regular key=value;-style user_data entry so that the shared
-// rmw::impl::cpp::parse_key_value parser (which only accepts alnum keys and
-// stops at the first non-alnum byte in a key) does not abort on the rest of
-// the user_data string. Inside the bufbe value, backends are joined by ',' and
-// each backend is `<name>:<aux>` (neither ',' nor ':' may appear in a name or
-// aux). The value cannot contain ';' (parse_key_value treats it as a
-// terminator).
-static const char * BUFFER_BACKEND_KEY = "bufbe";
-
-std::string
-encode_buffer_backends_for_user_data(
-  const std::unordered_map<std::string, std::string> & backends)
-{
-  if (backends.empty()) {
-    return {};
-  }
-  std::ostringstream ss;
-  ss << BUFFER_BACKEND_KEY << '=';
-  bool first = true;
-  for (const auto & [name, aux] : backends) {
-    if (!first) {
-      ss << ',';
-    }
-    ss << name << ':' << aux;
-    first = false;
-  }
-  ss << ';';
-  return ss.str();
-}
-
-std::unordered_map<std::string, std::string>
-parse_buffer_backends_from_user_data(const uint8_t * data, size_t size)
-{
-  std::unordered_map<std::string, std::string> result;
-  if (!data || size == 0) {
-    return result;
-  }
-  std::vector<uint8_t> udvec(data, data + size);
-  auto kv = rmw::impl::cpp::parse_key_value(udvec);
-  auto it = kv.find(BUFFER_BACKEND_KEY);
-  if (it == kv.end()) {
-    return result;
-  }
-  std::string backends_str(it->second.begin(), it->second.end());
-  std::istringstream ss(backends_str);
-  std::string entry;
-  while (std::getline(ss, entry, ',')) {
-    if (entry.empty()) {
-      continue;
-    }
-    size_t colon = entry.find(':');
-    std::string name = entry.substr(0, colon);
-    std::string aux = (colon == std::string::npos) ? "" : entry.substr(colon + 1);
-    if (!name.empty()) {
-      result[name] = aux;
-    }
-  }
-  return result;
-}
-
-std::string
-encode_endpoint_gid_for_user_data(const rmw_gid_t & gid, const char * tag)
-{
-  std::ostringstream ss;
-  ss << tag;
-  ss << std::hex << std::setfill('0');
-  for (size_t i = 0; i < RMW_GID_STORAGE_SIZE; ++i) {
-    ss << std::setw(2) << static_cast<unsigned>(gid.data[i]);
-  }
-  return ss.str();
-}
-
-bool
-parse_endpoint_gid_from_user_data(
-  const uint8_t * data, size_t size, const char * tag, rmw_gid_t & gid)
-{
-  size_t tag_len = strlen(tag);
-  if (!data || size < tag_len) {
-    return false;
-  }
-  std::string str(reinterpret_cast<const char *>(data), size);
-  auto pos = str.find(tag);
-  if (pos == std::string::npos) {
-    return false;
-  }
-  std::string hex_str = str.substr(pos + tag_len, RMW_GID_STORAGE_SIZE * 2);
-  if (hex_str.size() != RMW_GID_STORAGE_SIZE * 2) {
-    return false;
-  }
-  for (size_t i = 0; i < RMW_GID_STORAGE_SIZE; ++i) {
-    unsigned val = 0;
-    std::istringstream iss(hex_str.substr(i * 2, 2));
-    iss >> std::hex >> val;
-    gid.data[i] = static_cast<uint8_t>(val);
-  }
-  return true;
-}
-
 template<typename DDSEntityQos>
 bool
 fill_data_entity_qos_from_profile(
   const rmw_qos_profile_t & qos_policies,
   const rosidl_type_hash_t & type_hash,
-  DDSEntityQos & entity_qos,
-  const rosidl_type_hash_t * ser_type_hash = nullptr,
-  const std::unordered_map<std::string, std::string> * buffer_backends = nullptr)
+  DDSEntityQos & entity_qos)
 {
   if (!fill_entity_qos_from_profile(qos_policies, entity_qos)) {
     return false;
@@ -272,18 +165,9 @@ fill_data_entity_qos_from_profile(
       "rmw_fastrtps_shared_cpp",
       "Failed to encode type hash for topic, will not distribute it in USER_DATA.");
     user_data_str.clear();
+    // Since we are going to go on without a hash, we clear the error so other
+    // code won't overwrite it.
     rmw_reset_error();
-  }
-  if (ser_type_hash) {
-    std::string typehash_str;
-    if (RMW_RET_OK ==
-      rmw_dds_common::encode_sertype_hash_for_user_data_qos(*ser_type_hash, typehash_str))
-    {
-      user_data_str += typehash_str;
-    }
-  }
-  if (buffer_backends && !buffer_backends->empty()) {
-    user_data_str += encode_buffer_backends_for_user_data(*buffer_backends);
   }
   std::vector<uint8_t> user_data(user_data_str.begin(), user_data_str.end());
   entity_qos.user_data().resize(user_data.size());
@@ -295,13 +179,9 @@ bool
 get_datareader_qos(
   const rmw_qos_profile_t & qos_policies,
   const rosidl_type_hash_t & type_hash,
-  eprosima::fastdds::dds::DataReaderQos & datareader_qos,
-  const rosidl_type_hash_t * ser_type_hash,
-  const std::unordered_map<std::string, std::string> * buffer_backends)
+  eprosima::fastdds::dds::DataReaderQos & datareader_qos)
 {
-  if (fill_data_entity_qos_from_profile(
-      qos_policies, type_hash, datareader_qos, ser_type_hash, buffer_backends))
-  {
+  if (fill_data_entity_qos_from_profile(qos_policies, type_hash, datareader_qos)) {
     // The type support in the RMW implementation is always XCDR1.
     constexpr auto rep = eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION;
     datareader_qos.representation().clear();
@@ -316,13 +196,9 @@ bool
 get_datawriter_qos(
   const rmw_qos_profile_t & qos_policies,
   const rosidl_type_hash_t & type_hash,
-  eprosima::fastdds::dds::DataWriterQos & datawriter_qos,
-  const rosidl_type_hash_t * ser_type_hash,
-  const std::unordered_map<std::string, std::string> * buffer_backends)
+  eprosima::fastdds::dds::DataWriterQos & datawriter_qos)
 {
-  if (fill_data_entity_qos_from_profile(
-      qos_policies, type_hash, datawriter_qos, ser_type_hash, buffer_backends))
-  {
+  if (fill_data_entity_qos_from_profile(qos_policies, type_hash, datawriter_qos)) {
     // The type support in the RMW implementation is always XCDR1.
     constexpr auto rep = eprosima::fastdds::dds::XCDR_DATA_REPRESENTATION;
     datawriter_qos.representation().clear();

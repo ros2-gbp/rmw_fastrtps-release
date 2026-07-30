@@ -42,7 +42,6 @@ find_package(fastcdr 2 REQUIRED)
 find_package(fastdds 3 REQUIRED)
 
 find_package(rmw REQUIRED)
-find_package(rosidl_buffer REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_introspection_c REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
@@ -67,7 +66,6 @@ add_library(rmw_fastrtps_dynamic_cpp
   src/rmw_get_gid_for_publisher.cpp
   src/rmw_get_implementation_identifier.cpp
   src/rmw_get_serialization_format.cpp
-  src/rmw_get_service_endpoint_info.cpp
   src/rmw_get_topic_endpoint_info.cpp
   src/rmw_guard_condition.cpp
   src/rmw_init.cpp
@@ -104,7 +102,6 @@ target_link_libraries(rmw_fastrtps_dynamic_cpp PUBLIC
   rcutils::rcutils
   rmw::rmw
   rmw_fastrtps_shared_cpp::rmw_fastrtps_shared_cpp
-  rosidl_buffer::rosidl_buffer
   rosidl_runtime_c::rosidl_runtime_c
   rosidl_typesupport_introspection_c::rosidl_typesupport_introspection_c
   rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
@@ -136,15 +133,14 @@ ament_export_dependencies(
   rcutils
   rmw
   rmw_fastrtps_shared_cpp
-  rosidl_buffer
   rosidl_runtime_c
   rosidl_typesupport_introspection_c
   rosidl_typesupport_introspection_cpp
 )
 
 register_rmw_implementation(
-  "c:rosidl_typesupport_introspection_c"
-  "cpp:rosidl_typesupport_introspection_cpp")
+  "c:rosidl_typesupport_c:rosidl_typesupport_introspection_c"
+  "cpp:rosidl_typesupport_cpp:rosidl_typesupport_introspection_cpp")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -161,7 +157,7 @@ if(BUILD_TESTING)
     rcutils::rcutils
     rmw::rmw
     rmw_fastrtps_dynamic_cpp
-    test_msgs::test_msgs
+    ${test_msgs_TARGETS}
   )
 
   ament_add_gtest(test_logging test/test_logging.cpp)
