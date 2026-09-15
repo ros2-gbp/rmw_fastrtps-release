@@ -29,6 +29,26 @@
 
 namespace rmw_fastrtps_shared_cpp
 {
+static bool data_reader_has_data(
+  eprosima::fastdds::dds::DataReader * data_reader)
+{
+  if (!data_reader) {
+    return false;
+  }
+
+  eprosima::fastdds::dds::SampleInfo sample_info;
+  return eprosima::fastdds::dds::RETCODE_OK ==
+         data_reader->get_first_untaken_info(&sample_info);
+}
+
+static bool subscription_has_data(
+  const CustomSubscriberInfo * custom_subscriber_info)
+{
+  return data_reader_has_data(custom_subscriber_info->data_reader_) ||
+         data_reader_has_data(custom_subscriber_info->cpu_data_reader_) ||
+         data_reader_has_data(custom_subscriber_info->accel_data_reader_);
+}
+
 /// Check if any condition in the set of entities has a triggered condition.
 /**
  * If any condition is triggered before waiting, then we can skip some set-up,
@@ -79,10 +99,7 @@ static bool has_triggered_condition(
     for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
-      eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK ==
-        custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
-      {
+      if (subscription_has_data(custom_subscriber_info)) {
         return true;
       }
     }
@@ -160,6 +177,14 @@ __rmw_wait(
         auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
         attached_conditions.push_back(
           &custom_subscriber_info->data_reader_->get_statuscondition());
+        if (custom_subscriber_info->cpu_data_reader_) {
+          attached_conditions.push_back(
+            &custom_subscriber_info->cpu_data_reader_->get_statuscondition());
+        }
+        if (custom_subscriber_info->accel_data_reader_) {
+          attached_conditions.push_back(
+            &custom_subscriber_info->accel_data_reader_->get_statuscondition());
+        }
       }
     }
 
@@ -231,11 +256,12 @@ __rmw_wait(
       void * data = subscriptions->subscribers[i];
       auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
 
-      eprosima::fastdds::dds::SampleInfo sample_info;
-      if (eprosima::fastdds::dds::RETCODE_OK !=
-        custom_subscriber_info->data_reader_->get_first_untaken_info(&sample_info))
-      {
+      if (!subscription_has_data(custom_subscriber_info)) {
         subscriptions->subscribers[i] = 0;
+      } else {
+        // We are returning a ready subscription,
+        // so we need to indicate that the wait was successful.
+        wait_result = true;
       }
     }
   }
@@ -250,6 +276,10 @@ __rmw_wait(
         custom_client_info->response_reader_->get_first_untaken_info(&sample_info))
       {
         clients->clients[i] = 0;
+      } else {
+        // We are returning a ready client,
+        // so we need to indicate that the wait was successful.
+        wait_result = true;
       }
     }
   }
@@ -264,6 +294,10 @@ __rmw_wait(
         custom_service_info->request_reader_->get_first_untaken_info(&sample_info))
       {
         services->services[i] = 0;
+      } else {
+        // We are returning a ready service,
+        // so we need to indicate that the wait was successful.
+        wait_result = true;
       }
     }
   }
@@ -299,6 +333,10 @@ __rmw_wait(
 
       if (!active) {
         events->events[i] = 0;
+      } else {
+        // We are returning a ready event,
+        // so we need to indicate that the wait was successful.
+        wait_result = true;
       }
     }
   }
@@ -309,8 +347,12 @@ __rmw_wait(
       auto condition = static_cast<eprosima::fastdds::dds::GuardCondition *>(data);
       if (!condition->get_trigger_value()) {
         guard_conditions->guard_conditions[i] = 0;
+      } else {
+        condition->set_trigger_value(false);
+        // We are returning a ready guard condition,
+        // so we need to indicate that the wait was successful.
+        wait_result = true;
       }
-      condition->set_trigger_value(false);
     }
   }
 

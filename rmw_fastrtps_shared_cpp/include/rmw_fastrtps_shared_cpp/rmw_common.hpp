@@ -17,6 +17,8 @@
 
 #include "./visibility_control.h"
 
+#include "fastdds/dds/subscriber/SampleInfo.hpp"
+
 #include "rcutils/allocator.h"
 #include "rcutils/types/string_array.h"
 
@@ -24,6 +26,7 @@
 #include "rmw/event.h"
 #include "rmw/features.h"
 #include "rmw/rmw.h"
+#include "rmw/service_endpoint_info_array.h"
 #include "rmw/topic_endpoint_info_array.h"
 #include "rmw/types.h"
 #include "rmw/names_and_types.h"
@@ -525,6 +528,26 @@ __rmw_get_subscriptions_info_by_topic(
 
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 rmw_ret_t
+__rmw_get_clients_info_by_service(
+  const char * identifier,
+  const rmw_node_t * node,
+  rcutils_allocator_t * allocator,
+  const char * service_name,
+  bool no_mangle,
+  rmw_service_endpoint_info_array_t * clients_info);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
+__rmw_get_servers_info_by_service(
+  const char * identifier,
+  const rmw_node_t * node,
+  rcutils_allocator_t * allocator,
+  const char * service_name,
+  bool no_mangle,
+  rmw_service_endpoint_info_array_t * servers_info);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+rmw_ret_t
 __rmw_qos_profile_check_compatible(
   const rmw_qos_profile_t publisher_profile,
   const rmw_qos_profile_t subscription_profile,
@@ -581,6 +604,13 @@ __rmw_feature_supported(rmw_feature_t feature);
 RMW_FASTRTPS_SHARED_CPP_PUBLIC
 bool
 __rmw_event_type_is_supported(rmw_event_type_t rmw_event_type);
+
+RMW_FASTRTPS_SHARED_CPP_PUBLIC
+void
+_assign_message_info(
+  const char * identifier,
+  rmw_message_info_t * message_info,
+  const eprosima::fastdds::dds::SampleInfo * sinfo);
 
 }  // namespace rmw_fastrtps_shared_cpp
 

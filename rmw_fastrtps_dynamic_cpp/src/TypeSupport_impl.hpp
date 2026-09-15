@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "fastcdr/Cdr.h"
@@ -34,6 +35,8 @@
 
 #include "rosidl_typesupport_introspection_c/message_introspection.h"
 #include "rosidl_typesupport_introspection_c/service_introspection.h"
+
+#include "rosidl_buffer/buffer.hpp"
 
 #include "rosidl_runtime_c/primitives_sequence_functions.h"
 #include "rosidl_runtime_c/u16string_functions.h"
@@ -271,7 +274,26 @@ bool TypeSupport<MembersType>::serializeROSmessage(
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BYTE:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_UINT8:
-        serialize_field<uint8_t>(member, field, ser);
+        if (member->is_rosidl_buffer_ && member->is_array_ &&
+          !(member->array_size_ && !member->is_upper_bound_))
+        {
+          if constexpr (std::is_same_v<MembersType,
+            rosidl_typesupport_introspection_cpp::MessageMembers>)
+          {
+            auto & buffer = *reinterpret_cast<const rosidl::Buffer<uint8_t> *>(field);
+            ser.serialize_sequence(buffer.data(), buffer.size());
+          } else {
+            auto & seq = *reinterpret_cast<rosidl_runtime_c__uint8__Sequence *>(field);
+            if (seq.is_rosidl_buffer && seq.data) {
+              auto * buf = reinterpret_cast<const rosidl::Buffer<uint8_t> *>(seq.data);
+              ser.serialize_sequence(buf->data(), buf->size());
+            } else {
+              ser.serialize_sequence(reinterpret_cast<uint8_t *>(seq.data), seq.size);
+            }
+          }
+        } else {
+          serialize_field<uint8_t>(member, field, ser);
+        }
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_CHAR:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_INT8:
@@ -608,7 +630,37 @@ size_t TypeSupport<MembersType>::getEstimatedSerializedSize(
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BYTE:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_UINT8:
-        current_alignment = next_field_align<uint8_t>(member, field, current_alignment);
+        if (member->is_rosidl_buffer_ && member->is_array_ &&
+          !(member->array_size_ && !member->is_upper_bound_))
+        {
+          const size_t padding = 4;
+          size_t item_size = sizeof(uint8_t);
+          current_alignment += eprosima::fastcdr::Cdr::alignment(current_alignment, padding);
+          current_alignment += padding;
+          size_t buf_size = 0;
+          if constexpr (std::is_same_v<MembersType,
+            rosidl_typesupport_introspection_cpp::MessageMembers>)
+          {
+            buf_size =
+              reinterpret_cast<const rosidl::Buffer<uint8_t> *>(field)->size();
+          } else {
+            auto * seq =
+              reinterpret_cast<const rosidl_runtime_c__uint8__Sequence *>(field);
+            if (seq->is_rosidl_buffer && seq->data) {
+              buf_size =
+                reinterpret_cast<const rosidl::Buffer<uint8_t> *>(seq->data)->size();
+            } else {
+              buf_size = seq->size;
+            }
+          }
+          if (buf_size > 0) {
+            current_alignment += eprosima::fastcdr::Cdr::alignment(
+              current_alignment, item_size);
+            current_alignment += item_size * buf_size;
+          }
+        } else {
+          current_alignment = next_field_align<uint8_t>(member, field, current_alignment);
+        }
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_CHAR:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_INT8:
@@ -829,6 +881,7 @@ inline void deserialize_field<std::wstring>(
   } else {
     uint32_t size;
     deser >> size;
+    check_sequence_size(size, deser);
     auto sequence = static_cast<rosidl_runtime_c__U16String__Sequence *>(field);
     if (!rosidl_runtime_c__U16String__Sequence__init(sequence, size)) {
       throw std::runtime_error("unable to initialize rosidl_runtime_c__U16String sequence");
@@ -857,7 +910,43 @@ bool TypeSupport<MembersType>::deserializeROSmessage(
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_BYTE:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_UINT8:
-        deserialize_field<uint8_t>(member, field, deser);
+        if (member->is_rosidl_buffer_ && member->is_array_ &&
+          !(member->array_size_ && !member->is_upper_bound_))
+        {
+          if constexpr (std::is_same_v<MembersType,
+            rosidl_typesupport_introspection_cpp::MessageMembers>)
+          {
+            auto & buffer = *reinterpret_cast<rosidl::Buffer<uint8_t> *>(field);
+            int32_t dsize = 0;
+            deser >> dsize;
+            check_sequence_size(dsize, deser);
+            buffer.resize(dsize);
+            if (dsize > 0) {
+              deser.deserialize_array(buffer.data(), dsize);
+            }
+          } else {
+            auto * seq = reinterpret_cast<rosidl_runtime_c__uint8__Sequence *>(field);
+            int32_t dsize = 0;
+            deser >> dsize;
+            check_sequence_size(dsize, deser);
+            if (seq->is_rosidl_buffer && seq->data) {
+              auto * buf = reinterpret_cast<rosidl::Buffer<uint8_t> *>(seq->data);
+              buf->resize(dsize);
+              if (dsize > 0) {
+                deser.deserialize_array(buf->data(), dsize);
+              }
+            } else {
+              if (!rosidl_runtime_c__uint8__Sequence__init(seq, dsize)) {
+                throw std::runtime_error("unable to initialize uint8 sequence");
+              }
+              if (dsize > 0) {
+                deser.deserialize_array(seq->data, dsize);
+              }
+            }
+          }
+        } else {
+          deserialize_field<uint8_t>(member, field, deser);
+        }
         break;
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_CHAR:
       case ::rosidl_typesupport_introspection_cpp::ROS_TYPE_INT8:

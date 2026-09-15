@@ -50,6 +50,7 @@ find_package(fastcdr 2 REQUIRED)
 find_package(fastdds 3 REQUIRED)
 
 find_package(rmw REQUIRED)
+find_package(rosidl_buffer_backend_registry REQUIRED)
 
 add_library(rmw_fastrtps_shared_cpp
   src/custom_participant_info.cpp
@@ -71,6 +72,7 @@ add_library(rmw_fastrtps_shared_cpp
   src/rmw_get_endpoint_network_flow.cpp
   src/rmw_get_gid_for_client.cpp
   src/rmw_get_gid_for_publisher.cpp
+  src/rmw_get_service_endpoint_info.cpp
   src/rmw_get_topic_endpoint_info.cpp
   src/rmw_guard_condition.cpp
   src/rmw_init.cpp
@@ -114,6 +116,7 @@ target_link_libraries(rmw_fastrtps_shared_cpp PUBLIC
 )
 
 target_link_libraries(rmw_fastrtps_shared_cpp PRIVATE
+  rosidl_buffer_backend_registry::rosidl_buffer_backend_registry
   rosidl_typesupport_introspection_c::rosidl_typesupport_introspection_c
   rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
   tracetools::tracetools
