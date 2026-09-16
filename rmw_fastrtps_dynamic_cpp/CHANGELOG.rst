@@ -2,19 +2,25 @@
 Changelog for package rmw_fastrtps_dynamic_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.4.10 (2026-09-15)
--------------------
-* Add missing exec_depend on rmw_dds_common (`#920 <https://github.com/ros2/rmw_fastrtps/issues/920>`_)
-* Check remaining buffer size before allocating C wstring sequences (`#910 <https://github.com/ros2/rmw_fastrtps/issues/910>`_) (`#911 <https://github.com/ros2/rmw_fastrtps/issues/911>`_)
-* Contributors: mergify[bot]
+9.6.0 (2026-09-16)
+------------------
+* Add missing exec_depend on rmw_dds_common (`#919 <https://github.com/ros2/rmw_fastrtps/issues/919>`_)
+* Unique network flows optional checks (`#872 <https://github.com/ros2/rmw_fastrtps/issues/872>`_)
+* Check remaining buffer size before allocating C wstring sequences (`#910 <https://github.com/ros2/rmw_fastrtps/issues/910>`_)
+* Contributors: Florencia, Scott K Logan, Thomas Moore
 
-9.4.9 (2026-07-30)
+9.5.2 (2026-07-28)
+------------------
+* use C++ 20 in default. (`#894 <https://github.com/ros2/rmw_fastrtps/issues/894>`_)
+* Contributors: Tomoya Fujita
+
+9.5.1 (2026-05-13)
 ------------------
 
-9.4.8 (2026-05-13)
+9.5.0 (2026-05-07)
 ------------------
-* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps//issues/879>`_) (`#882 <https://github.com/ros2/rmw_fastrtps//issues/882>`_)
-* Contributors: mergify[bot]
+* Fix UB in accessing the keys (`#879 <https://github.com/ros2/rmw_fastrtps/issues/879>`_)
+* Contributors: Chris Lalancette
 
 9.4.6 (2026-04-09)
 ------------------

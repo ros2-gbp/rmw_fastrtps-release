@@ -2,21 +2,27 @@
 Changelog for package rmw_fastrtps_shared_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-9.4.10 (2026-09-15)
--------------------
-* Add missing exec_depend on rmw_dds_common (`#920 <https://github.com/ros2/rmw_fastrtps/issues/920>`_)
-* Fixes in `rmw_wait` (`#895 <https://github.com/ros2/rmw_fastrtps/issues/895>`_) (`#915 <https://github.com/ros2/rmw_fastrtps/issues/915>`_)
-* Contributors: mergify[bot]
-
-9.4.9 (2026-07-30)
+9.6.0 (2026-09-16)
 ------------------
-* Fix buffer-aware subscriptions to preserve unread data across rmw_wait calls (`#900 <https://github.com/ros2/rmw_fastrtps/issues/900>`_) (`#902 <https://github.com/ros2/rmw_fastrtps/issues/902>`_)
-* Contributors: mergify[bot]
+* Add missing exec_depend on rmw_dds_common (`#919 <https://github.com/ros2/rmw_fastrtps/issues/919>`_)
+* Unique network flows optional checks (`#872 <https://github.com/ros2/rmw_fastrtps/issues/872>`_)
+* Fixes in `rmw_wait` (`#895 <https://github.com/ros2/rmw_fastrtps/issues/895>`_)
+* Fix deadlock in take_event and set_on_new_event_callback (`#890 <https://github.com/ros2/rmw_fastrtps/issues/890>`_)
+* Contributors: Miguel Company, Scott K Logan, Thomas Moore
 
-9.4.8 (2026-05-13)
+9.5.2 (2026-07-28)
 ------------------
-* Change the buffer-aware BUFBE: -> bufbe. (backport `#880 <https://github.com/ros2/rmw_fastrtps//issues/880>`_) (`#884 <https://github.com/ros2/rmw_fastrtps//issues/884>`_)
-* Contributors: mergify[bot]
+* Fix buffer-aware subscriptions to preserve unread data across rmw_wait calls (`#900 <https://github.com/ros2/rmw_fastrtps/issues/900>`_)
+* use C++ 20 in default. (`#894 <https://github.com/ros2/rmw_fastrtps/issues/894>`_)
+* Contributors: CY Chen, Tomoya Fujita
+
+9.5.1 (2026-05-13)
+------------------
+
+9.5.0 (2026-05-07)
+------------------
+* Change the buffer-aware BUFBE: -> bufbe. (`#880 <https://github.com/ros2/rmw_fastrtps/issues/880>`_)
+* Contributors: Chris Lalancette
 
 9.4.6 (2026-04-09)
 ------------------
